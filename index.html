@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig</title>
+<title>CostRig V2</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -20,11 +20,21 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 .screen{display:none}.screen.active{display:block}.sectionTitle{font-weight:900;margin:22px 0 10px}.pill{font-size:11px;padding:5px 8px;border-radius:999px;background:#25303a}.history{font-size:14px}.history .row{padding:9px 0;border-bottom:1px solid #202830}.bar{height:10px;background:#202830;border-radius:20px;overflow:hidden;margin:9px 0}.bar span{height:100%;display:block;background:var(--orange)}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:20;padding:20px;overflow:auto}.modal.open{display:block}.modalBox{max-width:500px;margin:40px auto;background:#10161c;border:1px solid var(--line);border-radius:20px;padding:18px}.close{float:right;background:#242c34;color:white;border:0;border-radius:10px;padding:7px 10px}
 .empty{padding:28px;text-align:center;color:var(--muted)}.tiny{font-size:11px;color:var(--muted)}
+
+.brand{display:flex;align-items:center;gap:7px}.brandMark{display:inline-grid;place-items:center;width:31px;height:31px;border:2px solid var(--orange);border-radius:50%;font-size:21px;color:var(--orange);transform:rotate(-20deg)}
+.heroCard{background:radial-gradient(circle at top right,#272018 0,#12171d 42%,#0e1318 75%);border:1px solid #34312d;border-radius:18px;padding:16px;margin-bottom:12px}
+.kicker{font-size:11px;font-weight:900;letter-spacing:.9px;color:var(--orange)}
+.asset{transition:transform .12s ease}.asset:active{transform:scale(.985)}
+.statusDot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;background:currentColor}
+.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.metric{background:#171e25;border:1px solid var(--line);border-radius:13px;padding:12px}.metric b{display:block;font-size:20px;margin-top:4px}
+.dangerBtn{background:#311717!important;color:#ff7066!important;border-color:#5d2724!important}
+.entryActions{display:flex;gap:7px;align-items:center}.miniBtn{border:1px solid #34404a;background:#202830;color:#dfe5e9;border-radius:9px;padding:7px 9px;font-size:12px}
+.logoSub{font-size:9px;letter-spacing:1.25px;color:#7f8992;margin-top:-7px;margin-left:40px}
 </style>
 </head>
 <body>
 <div class="app">
-<header><div class="brand">COST<span>RIG</span></div><div class="badge">V1</div></header>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><div class="badge">V2</div></header><div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
 <h1>Good afternoon</h1><p class="sub">Here's how your equipment is doing.</p>
@@ -49,7 +59,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </section>
 
 <section id="reports" class="screen">
-<h1>Cost Analysis</h1><p class="sub">See what your equipment is really costing you.</p>
+<h1>Reports & Analytics</h1><p class="sub">Understand where your equipment money is going.</p>
 <div class="card"><span class="muted">TOTAL RECORDED COSTS</span><div class="money" id="allCosts">$0</div><div class="bar"><span id="repairBar" style="width:0%"></span></div><div class="row"><span>Repairs</span><b id="reportRepairs">$0</b></div><div class="row"><span>Maintenance</span><b id="reportMaint">$0</b></div><div class="row"><span>Other</span><b id="reportOther">$0</b></div></div>
 <h2>Highest-cost equipment</h2><div id="ranking"></div>
 </section>
@@ -118,18 +128,22 @@ document.getElementById("ranking").innerHTML=[...assets].sort((a,b)=>sumAsset(b)
 }
 function sumAsset(a){let t=totals(a);return t.maintenance+t.repair+t.expense}
 function assetCard(a){let meter=a.tracking==="hours"?`${a.meter} hrs`:a.tracking==="miles"?`${Number(a.meter).toLocaleString()} mi`:a.type;return `<div class="card asset" onclick="openDetail(${a.id})"><div class="assetIcon">${icon(a.type)}</div><div class="assetMain"><div class="assetName">${a.name}</div><div class="muted">${meter}</div><div class="status ${a.status==="good"?"goodTxt":a.status==="attention"?"attentionTxt":"downTxt"}">${statusText(a.status)}</div><div class="cost">${money(sumAsset(a))} recorded costs</div></div><b>›</b></div>`}
-function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id),t=totals(a);let meter=a.tracking==="hours"?`${a.meter} hours`:a.tracking==="miles"?`${Number(a.meter).toLocaleString()} miles`:"No meter";document.getElementById("detailContent").innerHTML=`
-<h1>${a.name}</h1><p class="${a.status==="good"?"goodTxt":a.status==="attention"?"attentionTxt":"downTxt"}">${statusText(a.status)}</p><p class="sub">${meter}</p>
-<div class="card"><span class="muted">TOTAL INVESTED</span><div class="money">${money(Number(a.price)+sumAsset(a))}</div><div class="divider"></div><div class="row"><span>Purchase</span><b>${money(a.price)}</b></div><div class="row"><span>Maintenance</span><b>${money(t.maintenance)}</b></div><div class="row"><span>Repairs</span><b>${money(t.repair)}</b></div><div class="row"><span>Other</span><b>${money(t.expense)}</b></div></div>
+function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id),t=totals(a);let meter=a.tracking==="hours"?`${a.meter} hours`:a.tracking==="miles"?`${Number(a.meter).toLocaleString()} miles`:"No meter";let total=Number(a.price)+sumAsset(a);let repairs=t.repair||0;let repairPct=total?Math.round(repairs/total*100):0;document.getElementById("detailContent").innerHTML=`
+<div class="row"><div><h1>${a.name}</h1><p class="${a.status==="good"?"goodTxt":a.status==="attention"?"attentionTxt":"downTxt"}"><span class="statusDot"></span>${statusText(a.status).replace("● ","")}</p></div><button class="miniBtn" onclick="editEquipment(${a.id})">Edit</button></div><p class="sub">${meter}</p>
+<div class="heroCard"><div class="kicker">TOTAL OWNERSHIP COST</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Purchase</span><b>${money(a.price)}</b></div><div class="metric"><span class="muted">Recorded costs</span><b>${money(sumAsset(a))}</b></div></div><div class="divider"></div><div class="row"><span>Maintenance</span><b>${money(t.maintenance)}</b></div><div class="row"><span>Repairs</span><b>${money(t.repair)}</b></div><div class="row"><span>Other</span><b>${money(t.expense)}</b></div><div class="bar"><span style="width:${repairPct}%"></span></div><div class="tiny">Repairs represent ${repairPct}% of total ownership cost.</div></div>
 <div class="actions"><button class="btn" onclick="openEntry('maintenance',${a.id})">+ Maintenance</button><button class="btn" onclick="openEntry('repair',${a.id})">+ Repair</button></div>
 <button class="btn secondary wide" onclick="openEntry('expense',${a.id})">+ Other Expense</button>
-<h2>History</h2><div class="card history">${a.entries.length?[...a.entries].reverse().map(e=>`<div class="row"><div><b>${e.description||e.type}</b><div class="tiny">${e.date} · ${e.type}</div></div><b>${money(e.cost)}</b></div>`).join(""):'<div class="empty">No history yet.</div>'}</div>`;
+<h2>History</h2><div class="card history">${a.entries.length?[...a.entries].map((e,i)=>({e,i})).reverse().map(({e,i})=>`<div class="row"><div><b>${e.description||e.type}</b><div class="tiny">${e.date} · ${e.type}</div></div><div class="entryActions"><b>${money(e.cost)}</b><button class="miniBtn dangerBtn" onclick="deleteEntry(${a.id},${i})">Delete</button></div></div>`).join(""):'<div class="empty">No history yet.</div>'}</div>
+<div style="height:18px"></div><button class="btn secondary dangerBtn wide" onclick="deleteEquipment(${a.id})">Delete Equipment</button>`;
 show("detail")}
+function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;document.getElementById("eqName").value=a.name;document.getElementById("eqType").value=a.type;document.getElementById("eqTracking").value=a.tracking;document.getElementById("eqMeter").value=a.meter;document.getElementById("eqPrice").value=a.price;document.getElementById("eqStatus").value=a.status;document.getElementById("equipmentModal").dataset.edit=id;document.querySelector("#equipmentModal h2").textContent="Edit Equipment";openEquipment()}
+function deleteEntry(assetId,index){if(!confirm("Delete this entry?"))return;let a=assets.find(x=>x.id===assetId);a.entries.splice(index,1);persist();openDetail(assetId)}
+function deleteEquipment(id){if(!confirm("Delete this equipment and all of its history?"))return;assets=assets.filter(a=>a.id!==id);persist();show("equipment")}
 function openEquipment(){document.getElementById("equipmentModal").classList.add("open")}
 function quickAdd(){openEntry("maintenance")}
 function openEntry(type,id){document.getElementById("entryModal").classList.add("open");document.getElementById("entryType").value=type;document.getElementById("entryTitle").textContent=type==="repair"?"Add Repair":type==="expense"?"Add Expense":"Add Maintenance";document.getElementById("entryEquipment").innerHTML=assets.map(a=>`<option value="${a.id}">${a.name}</option>`).join("");if(id)document.getElementById("entryEquipment").value=id;document.getElementById("entryDate").value=new Date().toISOString().slice(0,10)}
-function closeModal(id){document.getElementById(id).classList.remove("open")}
-function saveEquipment(){let name=document.getElementById("eqName").value.trim();if(!name)return alert("Enter an equipment name.");assets.push({id:Date.now(),name,type:document.getElementById("eqType").value,tracking:document.getElementById("eqTracking").value,meter:Number(document.getElementById("eqMeter").value||0),price:Number(document.getElementById("eqPrice").value||0),status:document.getElementById("eqStatus").value,entries:[]});persist();closeModal("equipmentModal");render();show("equipment")}
+function closeModal(id){let m=document.getElementById(id);m.classList.remove("open");if(id==="equipmentModal"){delete m.dataset.edit;document.querySelector("#equipmentModal h2").textContent="Add Equipment"}}
+function saveEquipment(){let name=document.getElementById("eqName").value.trim();if(!name)return alert("Enter an equipment name.");let modal=document.getElementById("equipmentModal"),edit=Number(modal.dataset.edit||0);let data={name,type:document.getElementById("eqType").value,tracking:document.getElementById("eqTracking").value,meter:Number(document.getElementById("eqMeter").value||0),price:Number(document.getElementById("eqPrice").value||0),status:document.getElementById("eqStatus").value};if(edit){let a=assets.find(x=>x.id===edit);Object.assign(a,data);delete modal.dataset.edit}else{assets.push({id:Date.now(),...data,entries:[]})}persist();closeModal("equipmentModal");document.querySelector("#equipmentModal h2").textContent="Add Equipment";["eqName","eqPrice"].forEach(x=>document.getElementById(x).value="");render();if(edit)openDetail(edit);else show("equipment")}
 function saveEntry(){let id=Number(document.getElementById("entryEquipment").value),a=assets.find(x=>x.id===id);if(!a)return;let cost=Number(document.getElementById("entryCost").value||0);a.entries.push({type:document.getElementById("entryType").value,cost,description:document.getElementById("entryDescription").value.trim()||document.getElementById("entryType").value,date:document.getElementById("entryDate").value,notes:document.getElementById("entryNotes").value});let m=document.getElementById("entryMeter").value;if(m!=="")a.meter=Number(m);let s=document.getElementById("entryStatus").value;if(s)a.status=s;persist();closeModal("entryModal");["entryCost","entryDescription","entryMeter","entryNotes"].forEach(x=>document.getElementById(x).value="");openDetail(id)}
 render();
 </script>
