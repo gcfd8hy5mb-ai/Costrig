@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig V2</title>
+<title>CostRig V3</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -30,11 +30,15 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 .dangerBtn{background:#311717!important;color:#ff7066!important;border-color:#5d2724!important}
 .entryActions{display:flex;gap:7px;align-items:center}.miniBtn{border:1px solid #34404a;background:#202830;color:#dfe5e9;border-radius:9px;padding:7px 9px;font-size:12px}
 .logoSub{font-size:9px;letter-spacing:1.25px;color:#7f8992;margin-top:-7px;margin-left:40px}
+
+.serviceCard{margin-bottom:10px}.dueGood{color:var(--green)}.dueSoon{color:var(--yellow)}.overdue{color:var(--red)}
+.downPanel{border:1px solid #5d2724;background:#251514;border-radius:15px;padding:14px;margin:12px 0}
+.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#171e25;border:1px solid var(--line);border-radius:13px;padding:12px}.metric b{display:block;font-size:19px;margin-top:4px}
 </style>
 </head>
 <body>
 <div class="app">
-<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><div class="badge">V2</div></header><div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><div class="badge">V3</div></header><div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
 <h1>Good afternoon</h1><p class="sub">Here's how your equipment is doing.</p>
@@ -96,6 +100,15 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 <button class="btn wide" onclick="saveEntry()">Save Entry</button>
 </div></div>
 
+<div id="serviceModal" class="modal"><div class="modalBox">
+<button class="close" onclick="closeModal('serviceModal')">✕</button><h2>Add Maintenance Schedule</h2>
+<label>Equipment</label><select id="serviceEquipment"></select>
+<label>Service</label><input id="serviceName" placeholder="Oil + filter">
+<label>Schedule by</label><select id="serviceKind" onchange="serviceKindChanged()"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="date">Date</option></select>
+<div id="serviceMeterFields"><label>Every</label><input id="serviceInterval" type="number" inputmode="decimal" placeholder="100"><label>Next due at</label><input id="serviceNext" type="number" inputmode="decimal" placeholder="800"></div>
+<div id="serviceDateField" style="display:none"><label>Next due date</label><input id="serviceDate" type="date"></div>
+<br><button class="btn wide" onclick="saveService()">Save Schedule</button>
+</div></div>
 <script>
 const seed=[
 {id:1,name:"2022 Exmark Lazer Z",type:"Mower",tracking:"hours",meter:742,price:9800,status:"attention",entries:[
@@ -109,6 +122,8 @@ const seed=[
 ];
 let assets=JSON.parse(localStorage.getItem("costrig_assets")||"null")||seed;
 let currentId=null;
+assets.forEach(a=>{if(!Array.isArray(a.services))a.services=[];if(!Array.isArray(a.downtime))a.downtime=[];});
+persist();
 function persist(){localStorage.setItem("costrig_assets",JSON.stringify(assets))}
 function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n||0)}
 function statusText(s){return s==="good"?"● Good":s==="attention"?"● Needs Attention":"● Out of Service"}
@@ -128,17 +143,29 @@ document.getElementById("ranking").innerHTML=[...assets].sort((a,b)=>sumAsset(b)
 }
 function sumAsset(a){let t=totals(a);return t.maintenance+t.repair+t.expense}
 function assetCard(a){let meter=a.tracking==="hours"?`${a.meter} hrs`:a.tracking==="miles"?`${Number(a.meter).toLocaleString()} mi`:a.type;return `<div class="card asset" onclick="openDetail(${a.id})"><div class="assetIcon">${icon(a.type)}</div><div class="assetMain"><div class="assetName">${a.name}</div><div class="muted">${meter}</div><div class="status ${a.status==="good"?"goodTxt":a.status==="attention"?"attentionTxt":"downTxt"}">${statusText(a.status)}</div><div class="cost">${money(sumAsset(a))} recorded costs</div></div><b>›</b></div>`}
-function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id),t=totals(a);let meter=a.tracking==="hours"?`${a.meter} hours`:a.tracking==="miles"?`${Number(a.meter).toLocaleString()} miles`:"No meter";let total=Number(a.price)+sumAsset(a);let repairs=t.repair||0;let repairPct=total?Math.round(repairs/total*100):0;document.getElementById("detailContent").innerHTML=`
+function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id),t=totals(a),active=a.downtime.find(d=>!d.end),days=a.downtime.reduce((n,d)=>n+downtimeDays(d),0);let meter=a.tracking==="hours"?`${a.meter} hours`:a.tracking==="miles"?`${Number(a.meter).toLocaleString()} miles`:"No meter";document.getElementById("detailContent").innerHTML=`
 <div class="row"><div><h1>${a.name}</h1><p class="${a.status==="good"?"goodTxt":a.status==="attention"?"attentionTxt":"downTxt"}"><span class="statusDot"></span>${statusText(a.status).replace("● ","")}</p></div><button class="miniBtn" onclick="editEquipment(${a.id})">Edit</button></div><p class="sub">${meter}</p>
-<div class="heroCard"><div class="kicker">TOTAL OWNERSHIP COST</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Purchase</span><b>${money(a.price)}</b></div><div class="metric"><span class="muted">Recorded costs</span><b>${money(sumAsset(a))}</b></div></div><div class="divider"></div><div class="row"><span>Maintenance</span><b>${money(t.maintenance)}</b></div><div class="row"><span>Repairs</span><b>${money(t.repair)}</b></div><div class="row"><span>Other</span><b>${money(t.expense)}</b></div><div class="bar"><span style="width:${repairPct}%"></span></div><div class="tiny">Repairs represent ${repairPct}% of total ownership cost.</div></div>
-<div class="actions"><button class="btn" onclick="openEntry('maintenance',${a.id})">+ Maintenance</button><button class="btn" onclick="openEntry('repair',${a.id})">+ Repair</button></div>
-<button class="btn secondary wide" onclick="openEntry('expense',${a.id})">+ Other Expense</button>
+${active?`<div class="downPanel"><b class="downTxt">Out of Service</b><div class="muted">Since ${active.start}</div><br><button class="btn wide" onclick="returnToService(${a.id})">Return to Service</button></div>`:`<button class="btn secondary wide" onclick="markOut(${a.id})">Mark Out of Service</button>`}
+<div class="heroCard"><div class="kicker">TOTAL OWNERSHIP COST</div><div class="money">${money(Number(a.price)+sumAsset(a))}</div><div class="metricGrid"><div class="metric"><span class="muted">Recorded costs</span><b>${money(sumAsset(a))}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days} days</b></div><div class="metric"><span class="muted">${a.tracking==="miles"?"Cost / mile":a.tracking==="hours"?"Cost / hour":"Purchase"}</span><b>${a.tracking==="none"?money(a.price):unitCost(a)}</b></div><div class="metric"><span class="muted">Repairs</span><b>${money(t.repair)}</b></div></div></div>
+<h2>Maintenance Schedule</h2><button class="btn secondary wide" onclick="openService(${a.id})">+ Add Maintenance Schedule</button><div style="height:10px"></div>${serviceCards(a)}
+<div class="actions"><button class="btn" onclick="openEntry('maintenance',${a.id})">+ Maintenance</button><button class="btn" onclick="openEntry('repair',${a.id})">+ Repair</button></div><button class="btn secondary wide" onclick="openEntry('expense',${a.id})">+ Other Expense</button>
 <h2>History</h2><div class="card history">${a.entries.length?[...a.entries].map((e,i)=>({e,i})).reverse().map(({e,i})=>`<div class="row"><div><b>${e.description||e.type}</b><div class="tiny">${e.date} · ${e.type}</div></div><div class="entryActions"><b>${money(e.cost)}</b><button class="miniBtn dangerBtn" onclick="deleteEntry(${a.id},${i})">Delete</button></div></div>`).join(""):'<div class="empty">No history yet.</div>'}</div>
-<div style="height:18px"></div><button class="btn secondary dangerBtn wide" onclick="deleteEquipment(${a.id})">Delete Equipment</button>`;
-show("detail")}
+<div style="height:18px"></div><button class="btn secondary dangerBtn wide" onclick="deleteEquipment(${a.id})">Delete Equipment</button>`;show("detail")}
 function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;document.getElementById("eqName").value=a.name;document.getElementById("eqType").value=a.type;document.getElementById("eqTracking").value=a.tracking;document.getElementById("eqMeter").value=a.meter;document.getElementById("eqPrice").value=a.price;document.getElementById("eqStatus").value=a.status;document.getElementById("equipmentModal").dataset.edit=id;document.querySelector("#equipmentModal h2").textContent="Edit Equipment";openEquipment()}
 function deleteEntry(assetId,index){if(!confirm("Delete this entry?"))return;let a=assets.find(x=>x.id===assetId);a.entries.splice(index,1);persist();openDetail(assetId)}
 function deleteEquipment(id){if(!confirm("Delete this equipment and all of its history?"))return;assets=assets.filter(a=>a.id!==id);persist();show("equipment")}
+
+function unitCost(a){let t=totals(a),op=(t.repair||0)+(t.maintenance||0);if(!a.meter||a.tracking==="none")return "—";return money(op/a.meter)+(a.tracking==="miles"?"/mi":"/hr")}
+function downtimeDays(d){let s=new Date(d.start+"T00:00:00"),e=new Date((d.end||new Date().toISOString().slice(0,10))+"T00:00:00");return Math.max(0,Math.ceil((e-s)/86400000))}
+function markOut(id){let a=assets.find(x=>x.id===id),date=prompt("Out of service date (YYYY-MM-DD)",new Date().toISOString().slice(0,10));if(!date)return;a.downtime.push({start:date,end:null});a.status="down";persist();openDetail(id)}
+function returnToService(id){let a=assets.find(x=>x.id===id),d=a.downtime.find(x=>!x.end),date=prompt("Return to service date (YYYY-MM-DD)",new Date().toISOString().slice(0,10));if(!d||!date)return;d.end=date;a.status="good";persist();openDetail(id)}
+function serviceDescription(s){return s.kind==="date"?"Scheduled by date":`Every ${Number(s.interval).toLocaleString()} ${s.kind}`}
+function serviceDueInfo(a,s){if(s.kind==="date"){let t=new Date(new Date().toISOString().slice(0,10)+"T00:00:00"),d=new Date(s.nextDate+"T00:00:00"),days=Math.ceil((d-t)/86400000);if(days<0)return [`${Math.abs(days)}d overdue`,"overdue"];if(days<=14)return [`Due in ${days}d`,"dueSoon"];return [s.nextDate,"dueGood"]}let rem=Number(s.next)-Number(a.meter||0),soon=s.kind==="miles"?500:10;if(rem<0)return [`${Math.abs(rem).toLocaleString()} ${s.kind} overdue`,"overdue"];return rem<=soon?[`Due in ${rem.toLocaleString()} ${s.kind}`,"dueSoon"]:[`Due @ ${Number(s.next).toLocaleString()}`,"dueGood"]}
+function serviceCards(a){return a.services.length?a.services.map((s,i)=>{let d=serviceDueInfo(a,s);return `<div class="card serviceCard"><div class="row"><div><b>${s.name}</b><div class="tiny">${serviceDescription(s)}</div></div><div style="text-align:right"><b class="${d[1]}">${d[0]}</b><br><button class="miniBtn dangerBtn" onclick="deleteService(${a.id},${i})">Delete</button></div></div></div>`}).join(""):'<div class="card empty">No scheduled maintenance yet.</div>'}
+function openService(id){let a=assets.find(x=>x.id===id);document.getElementById("serviceEquipment").innerHTML=assets.map(x=>`<option value="${x.id}">${x.name}</option>`).join("");document.getElementById("serviceEquipment").value=id;document.getElementById("serviceKind").value=a.tracking==="miles"?"miles":a.tracking==="hours"?"hours":"date";serviceKindChanged();document.getElementById("serviceModal").classList.add("open")}
+function serviceKindChanged(){let date=document.getElementById("serviceKind").value==="date";document.getElementById("serviceMeterFields").style.display=date?"none":"block";document.getElementById("serviceDateField").style.display=date?"block":"none"}
+function saveService(){let id=Number(document.getElementById("serviceEquipment").value),a=assets.find(x=>x.id===id),kind=document.getElementById("serviceKind").value,name=document.getElementById("serviceName").value.trim();if(!name)return alert("Enter a service name.");let s={name,kind};if(kind==="date"){s.nextDate=document.getElementById("serviceDate").value;if(!s.nextDate)return alert("Choose a due date.")}else{s.interval=Number(document.getElementById("serviceInterval").value||0);s.next=Number(document.getElementById("serviceNext").value||0);if(!s.next)return alert("Enter when service is next due.")}a.services.push(s);persist();closeModal("serviceModal");document.getElementById("serviceName").value="";openDetail(id)}
+function deleteService(id,i){if(!confirm("Delete this maintenance schedule?"))return;let a=assets.find(x=>x.id===id);a.services.splice(i,1);persist();openDetail(id)}
 function openEquipment(){document.getElementById("equipmentModal").classList.add("open")}
 function quickAdd(){openEntry("maintenance")}
 function openEntry(type,id){document.getElementById("entryModal").classList.add("open");document.getElementById("entryType").value=type;document.getElementById("entryTitle").textContent=type==="repair"?"Add Repair":type==="expense"?"Add Expense":"Add Maintenance";document.getElementById("entryEquipment").innerHTML=assets.map(a=>`<option value="${a.id}">${a.name}</option>`).join("");if(id)document.getElementById("entryEquipment").value=id;document.getElementById("entryDate").value=new Date().toISOString().slice(0,10)}
