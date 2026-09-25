@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig V3.4</title>
+<title>CostRig V3.5</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -60,14 +60,48 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 .insightCard{border-left:3px solid var(--orange)}
 .rankBar{height:7px;background:#202830;border-radius:10px;overflow:hidden;margin-top:7px}.rankBar span{display:block;height:100%;background:var(--orange)}
 .periodNote{text-align:center;margin:7px 0 16px}
+
+/* V3.5 UI/UX polish — no new fleet-management scope */
+:root{--shadow:0 10px 28px rgba(0,0,0,.18)}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{min-height:100vh}
+.app{padding-left:18px;padding-right:18px}
+header{position:sticky;top:0;z-index:8;background:linear-gradient(180deg,rgba(9,12,16,.98) 76%,rgba(9,12,16,0));padding-top:calc(16px + env(safe-area-inset-top));margin-top:calc(-1 * env(safe-area-inset-top))}
+.brand{letter-spacing:-.7px}.badge{min-width:48px}
+h1{font-size:29px;letter-spacing:-.7px}h2{letter-spacing:-.25px}
+.card,.heroCard,.planCard,.lockCard{box-shadow:var(--shadow)}
+.card{border-color:#29343e}
+.stat{min-height:86px;display:flex;flex-direction:column;justify-content:center}
+.stat span{font-size:12px;color:#b5bdc4}
+.asset{padding:13px}.assetIcon{width:54px;height:54px}
+.btn,.miniBtn,.choice,.presetBtn,.nav button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.btn{min-height:47px}.btn:active,.miniBtn:active,.choice:active{transform:scale(.985)}
+input,select,textarea{min-height:46px}
+.nav{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);background:rgba(10,14,18,.92);padding-top:7px}
+.nav button{border-radius:12px;min-height:52px}.nav .active{background:#181d21}
+.money{letter-spacing:-1px}
+.heroCard{padding:18px}
+.metric{min-height:79px;display:flex;flex-direction:column;justify-content:space-between}
+.metric .muted{line-height:1.25}
+.serviceCard{padding:14px}
+.serviceActions button{min-height:34px}
+.modal{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.modalBox{box-shadow:0 24px 70px rgba(0,0,0,.55);margin:24px auto 60px}
+.empty{border:1px dashed #2b3741;background:#0d1217;border-radius:15px}
+.sectionEyebrow{font-size:11px;font-weight:900;letter-spacing:.8px;color:var(--muted);text-transform:uppercase}
+.homeHero{padding:18px 0 5px}.homeHero h1{margin-bottom:5px}
+.reportMetric{min-height:78px}
+.reportFilters{position:sticky;top:72px;z-index:7;background:rgba(9,12,16,.94);padding:7px 0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+@media(max-width:370px){.app{padding-left:13px;padding-right:13px}.metricGrid,.reportGrid{grid-template-columns:1fr}.grid3{gap:6px}.stat{padding:10px}.stat b{font-size:22px}.reportFilters button{font-size:11px}}
+
 </style>
 </head>
 <body>
 <div class="app">
-<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge profileBadge" onclick="openProfile()">V3.4</button></header><div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge profileBadge" onclick="openProfile()">V3.5</button></header><div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
-<h1>Good afternoon</h1><p class="sub">Here's how your equipment is doing.</p>
+<div class="homeHero"><div class="sectionEyebrow">Equipment overview</div><h1 id="homeGreeting">Good afternoon</h1><p class="sub">Here’s how your equipment is doing.</p></div>
 <div class="grid3">
 <div class="stat good"><b id="goodCount">0</b><span>Good</span></div>
 <div class="stat attention"><b id="attentionCount">0</b><span>Attention</span></div>
@@ -79,7 +113,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </section>
 
 <section id="equipment" class="screen">
-<div class="row"><div><h1>Equipment</h1><p class="sub">Everything your business depends on.</p></div><button class="btn" onclick="openEquipment()">+ Add</button></div>
+<div class="row"><div><div class="sectionEyebrow">Your equipment</div><h1>Equipment</h1><p class="sub">Everything your business depends on.</p></div><button class="btn" onclick="openEquipment()">+ Add</button></div>
 <div id="equipmentList"></div>
 </section>
 
@@ -89,7 +123,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </section>
 
 <section id="reports" class="screen">
-<h1>Reports & Insights</h1><p class="sub">See where your equipment money is going.</p>
+<div class="sectionEyebrow">CostRig Pro</div><h1>Reports & Insights</h1><p class="sub">See where your equipment money is going.</p>
 <div class="reportFilters">
 <button id="rf30" onclick="setReportRange(30)">30D</button>
 <button id="rf90" onclick="setReportRange(90)">90D</button>
@@ -135,9 +169,9 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 
 <nav class="nav">
 <button data-screen="home" class="active" onclick="show('home')"><b>⌂</b>Home</button>
-<button data-screen="equipment" onclick="show('equipment')"><b>▣</b>Equipment</button>
-<button onclick="quickAdd()"><b>＋</b>Add</button>
-<button data-screen="reports" onclick="openReports()"><b>▥</b>Reports</button>
+<button data-screen="equipment" onclick="show('equipment')"><b>▦</b>Equipment</button>
+<button onclick="quickAdd()"><b>＋</b>Quick Add</button>
+<button data-screen="reports" onclick="openReports()"><b>▤</b>Reports</button>
 </nav>
 
 <div id="equipmentModal" class="modal"><div class="modalBox">
@@ -190,7 +224,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
  <div class="onboardLogo"><span class="brandMark">◔</span> COST<span>RIG</span></div>
  <div id="onboardStep1" class="onboardHero"><span class="proTag">WELCOME TO COSTRIG</span><h1>Know what your equipment really costs.</h1><p class="sub">Track the machines your work depends on — without turning it into complicated fleet software.</p><div class="featureRow"><div class="featureIcon">🔧</div><div><b>Maintenance & repairs</b><div class="muted">Keep service history and costs together.</div></div></div><div class="featureRow"><div class="featureIcon">⏱</div><div><b>Hours, miles & downtime</b><div class="muted">Track the numbers that matter for each machine.</div></div></div><div class="featureRow"><div class="featureIcon">$</div><div><b>Understand ownership cost</b><div class="muted">See where your equipment money goes.</div></div></div></div>
  <div id="onboardStep2" class="hidden onboardHero"><span class="proTag">MAKE IT YOURS</span><h1>What do you mainly track?</h1><p class="sub">This helps CostRig tailor the experience. You can change it later.</p><div class="choiceGrid" id="focusChoices"><button class="choice selected" data-focus="Mixed equipment" onclick="chooseFocus(this)">🧰<br><b>Mixed</b></button><button class="choice" data-focus="Trucks" onclick="chooseFocus(this)">🚚<br><b>Trucks</b></button><button class="choice" data-focus="Lawn equipment" onclick="chooseFocus(this)">🌱<br><b>Lawn</b></button><button class="choice" data-focus="Trailers" onclick="chooseFocus(this)">🛻<br><b>Trailers</b></button><button class="choice" data-focus="Tools" onclick="chooseFocus(this)">🔧<br><b>Tools</b></button></div><label>Your name</label><input id="onboardName" placeholder="Your name"><label>Business name (optional)</label><input id="onboardBusiness" placeholder="Business name"></div>
- <div id="onboardStep3" class="hidden onboardHero"><span class="proTag">CHOOSE YOUR EXPERIENCE</span><h1>Start Free. Preview Pro anytime.</h1><div class="planCard"><b>CostRig Free</b><p class="muted">Equipment, maintenance and repair history, basic schedules, and core cost tracking.</p></div><div class="planCard pro"><span class="proTag">COSTRIG PRO ✦</span><p>Deeper operating-cost insights, downtime analytics, maintenance alerts, and reports.</p><p class="tiny">No payment is connected in V3.4.</p></div></div>
+ <div id="onboardStep3" class="hidden onboardHero"><span class="proTag">CHOOSE YOUR EXPERIENCE</span><h1>Start Free. Preview Pro anytime.</h1><div class="planCard"><b>CostRig Free</b><p class="muted">Equipment, maintenance and repair history, basic schedules, and core cost tracking.</p></div><div class="planCard pro"><span class="proTag">COSTRIG PRO ✦</span><p>Deeper operating-cost insights, downtime analytics, maintenance alerts, and reports.</p><p class="tiny">No payment is connected in V3.5.</p></div></div>
  <div><button id="onboardNext" class="btn wide" onclick="nextOnboarding()">Get Started</button><button id="onboardBack" class="smallLink wide hidden" onclick="backOnboarding()">Back</button></div>
 </div></div>
 <script>
@@ -213,7 +247,7 @@ function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currenc
 function statusText(s){return s==="good"?"● Good":s==="attention"?"● Needs Attention":"● Out of Service"}
 function icon(t){return t==="Truck"?"🚚":t==="Trailer"?"🛻":t==="Mower"?"🌱":t==="Generator"?"⚡":t==="Compressor"?"💨":"🔧"}
 function totals(a){return a.entries.reduce((o,e)=>{o[e.type]=(o[e.type]||0)+Number(e.cost||0);return o},{maintenance:0,repair:0,expense:0})}
-function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));render()}
+function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));render();updateGreeting();scrollTopForScreen()}
 function render(){
 document.getElementById("goodCount").textContent=assets.filter(a=>a.status==="good").length;
 document.getElementById("attentionCount").textContent=assets.filter(a=>a.status==="attention").length;
@@ -266,6 +300,17 @@ function closeModal(id){let m=document.getElementById(id);m.classList.remove("op
 function saveEquipment(){let name=document.getElementById("eqName").value.trim();if(!name)return alert("Enter an equipment name.");let modal=document.getElementById("equipmentModal"),edit=Number(modal.dataset.edit||0);let data={name,type:document.getElementById("eqType").value,tracking:document.getElementById("eqTracking").value,meter:Number(document.getElementById("eqMeter").value||0),price:Number(document.getElementById("eqPrice").value||0),status:document.getElementById("eqStatus").value};if(edit){let a=assets.find(x=>x.id===edit);Object.assign(a,data);delete modal.dataset.edit}else{assets.push({id:Date.now(),...data,entries:[],services:[],downtime:[]})}persist();closeModal("equipmentModal");document.querySelector("#equipmentModal h2").textContent="Add Equipment";["eqName","eqPrice"].forEach(x=>document.getElementById(x).value="");render();if(edit)openDetail(edit);else show("equipment")}
 function saveEntry(){let id=Number(document.getElementById("entryEquipment").value),a=assets.find(x=>x.id===id);if(!a)return;let cost=Number(document.getElementById("entryCost").value||0);a.entries.push({type:document.getElementById("entryType").value,cost,description:document.getElementById("entryDescription").value.trim()||document.getElementById("entryType").value,date:document.getElementById("entryDate").value,notes:document.getElementById("entryNotes").value});let m=document.getElementById("entryMeter").value;if(m!=="")a.meter=Number(m);let s=document.getElementById("entryStatus").value;if(s)a.status=s;persist();closeModal("entryModal");["entryCost","entryDescription","entryMeter","entryNotes"].forEach(x=>document.getElementById(x).value="");openDetail(id)}
 
+
+
+// V3.5 presentation helpers
+function updateGreeting(){
+  let el=document.getElementById("homeGreeting");if(!el)return;
+  let h=new Date().getHours();
+  el.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
+}
+function scrollTopForScreen(){
+  window.scrollTo({top:0,behavior:"smooth"});
+}
 
 // V3.4 report engine
 let reportRange="all";
@@ -352,6 +397,7 @@ const baseRender=render;render=function(){baseRender();if(document.getElementByI
 const baseOpenDetail=openDetail;openDetail=function(id){baseOpenDetail(id);if(!isPro()){let a=assets.find(x=>x.id===id);let dc=document.getElementById("detailContent");let hero=dc.querySelector(".heroCard");if(hero){let metrics=hero.querySelectorAll(".metric");if(metrics[1])metrics[1].innerHTML='<span class="muted">Downtime</span><b>Pro ✦</b>';if(metrics[2])metrics[2].innerHTML='<span class="muted">Operating cost</span><b>Pro ✦</b>'}let h2s=[...dc.querySelectorAll("h2")];let down=h2s.find(x=>x.textContent==="Downtime History");if(down){let next=down.nextElementSibling;down.textContent="Downtime History · Pro ✦";if(next)next.outerHTML=proLock("Downtime History","See every out-of-service period and total downtime for this equipment.")}}}
 
 render();
+updateGreeting();
 syncProfileUI();
 if(!costrigProfile.onboarded){drawOnboarding();document.getElementById("onboarding").classList.add("open")}
 </script>
