@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig V4.0</title>
+<title>CostRig V4.1</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -23,7 +23,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:30;padding:20px;overflow:auto;backdrop-filter:blur(6px)}.modal.open{display:block}.modalBox{max-width:500px;margin:24px auto 60px;background:#10161c;border:1px solid var(--line);border-radius:20px;padding:18px}.close{float:right;background:#242c34;color:white;border:0;border-radius:10px;padding:7px 10px}
 .auth{position:fixed;inset:0;z-index:60;background:var(--bg);padding:calc(28px + env(safe-area-inset-top)) 20px;overflow:auto}.auth.hidden{display:none}.authInner{max-width:460px;margin:auto}.authHero{padding:50px 0 20px}.authHero h1{font-size:38px;line-height:1.05}.seg{display:grid;grid-template-columns:1fr 1fr;background:#151c22;border:1px solid var(--line);border-radius:13px;padding:4px;gap:4px}.seg button{border:0;border-radius:10px;padding:10px;background:transparent;color:var(--muted);font-weight:800}.seg button.active{background:var(--orange);color:#080808}
 .empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed #2b3741;border-radius:15px}.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#171e25;border:1px solid var(--line);border-radius:13px;padding:12px}.metric b{display:block;font-size:19px;margin-top:4px}.pill{font-size:11px;padding:5px 8px;border-radius:999px;background:#25303a}
-.notice{padding:12px;border:1px solid #4c3826;background:#17130f;border-radius:13px;color:#e8d5c2;margin:10px 0}.success{border-color:#1c5c3c;background:#10291f}.hidden{display:none!important}
+.notice{padding:12px;border:1px solid #4c3826;background:#17130f;border-radius:13px;color:#e8d5c2;margin:10px 0}.success{border-color:#1c5c3c;background:#10291f}.dueSoon{border-color:#5a471c;background:#211b0d}.overdue{border-color:#6b2522;background:#271211}.dueLabel{font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}.hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -52,7 +52,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.0</button></header>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -64,7 +64,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 <h2>Recorded costs</h2>
 <div class="card"><div class="money" id="allCost">$0</div><div class="divider"></div><div class="row"><span>Maintenance</span><b id="maintCost">$0</b></div><div class="row"><span>Repairs</span><b id="repairCost">$0</b></div><div class="row"><span>Other</span><b id="expenseCost">$0</b></div></div>
-<h2>Needs attention</h2><div id="attentionList"></div>
+<h2>Maintenance due</h2><div id="maintenanceDueList"></div><h2>Needs attention</h2><div id="attentionList"></div>
 </section>
 
 <section id="equipment" class="screen">
@@ -104,10 +104,14 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 <button class="close" onclick="closeModal('equipmentModal')">✕</button><h2 id="equipmentModalTitle">Add Equipment</h2>
 <label>Name</label><input id="eqName" placeholder="Exmark Lazer Z">
 <label>Type</label><select id="eqType"><option>Mower</option><option>Truck</option><option>Trailer</option><option>Generator</option><option>Compressor</option><option>Tool</option><option>Other</option></select>
+<div class="metricGrid"><div><label>Year</label><input id="eqYear" type="number" inputmode="numeric" placeholder="2024"></div><div><label>Make</label><input id="eqMake" placeholder="Ford"></div></div>
+<label>Model</label><input id="eqModel" placeholder="F-250">
+<div class="metricGrid"><div><label>Serial #</label><input id="eqSerial" placeholder="Optional"></div><div><label>VIN</label><input id="eqVin" placeholder="Optional"></div></div>
 <label>Tracking</label><select id="eqTracking"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="none">No meter</option></select>
 <label>Current hours/mileage</label><input id="eqMeter" type="number" inputmode="decimal" value="0">
-<label>Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" placeholder="0">
+<div class="metricGrid"><div><label>Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" placeholder="0"></div><div><label>Purchase date</label><input id="eqPurchaseDate" type="date"></div></div>
 <label>Status</label><select id="eqStatus"><option value="good">Good</option><option value="attention">Needs Attention</option><option value="down">Out of Service</option></select>
+<label>Notes</label><textarea id="eqNotes" placeholder="Ownership, warranty, location, attachments, or anything useful"></textarea>
 <br><br><button class="btn wide" onclick="saveEquipment()">Save Equipment</button>
 </div></div>
 
@@ -191,31 +195,53 @@ async function reloadCloud(){
 function assetMeter(a){if(a.current_mileage!=null)return Number(a.current_mileage).toLocaleString()+" mi";if(a.current_hours!=null)return Number(a.current_hours).toLocaleString()+" hrs";return a.asset_type||"Equipment"}
 function icon(t){return t==="Truck"?"🚚":t==="Trailer"?"🛻":t==="Mower"?"🌱":t==="Generator"?"⚡":t==="Compressor"?"💨":"🔧"}
 function assetCosts(id){return {m:maintenance.filter(x=>x.asset_id===id).reduce((n,x)=>n+Number(x.cost||0),0),r:repairs.filter(x=>x.asset_id===id).reduce((n,x)=>n+Number(x.cost||0),0),e:expenses.filter(x=>x.asset_id===id).reduce((n,x)=>n+Number(x.amount||0),0)}}
+
 function statusText(s){return s==="good"?"Good":s==="attention"?"Needs Attention":"Out of Service"}
+function scheduleState(s){
+ const a=assets.find(x=>x.id===s.asset_id); if(!a)return {state:"ok",label:"Scheduled"};
+ const now=new Date(); now.setHours(0,0,0,0);
+ if(s.next_due_date){let d=new Date(s.next_due_date+"T00:00:00");let days=Math.ceil((d-now)/86400000);if(days<0)return {state:"overdue",label:`Overdue by ${Math.abs(days)}d`};if(days<=14)return {state:"soon",label:`Due in ${days}d`};return {state:"ok",label:`Due ${s.next_due_date}`}}
+ if(s.next_due_mileage!=null&&a.current_mileage!=null){let left=Number(s.next_due_mileage)-Number(a.current_mileage);if(left<0)return {state:"overdue",label:`Overdue by ${Math.abs(left).toLocaleString()} mi`};if(left<=500)return {state:"soon",label:`Due in ${left.toLocaleString()} mi`};return {state:"ok",label:`Due @ ${Number(s.next_due_mileage).toLocaleString()} mi`}}
+ if(s.next_due_hours!=null&&a.current_hours!=null){let left=Number(s.next_due_hours)-Number(a.current_hours);if(left<0)return {state:"overdue",label:`Overdue by ${Math.abs(left).toLocaleString()} hrs`};if(left<=25)return {state:"soon",label:`Due in ${left.toLocaleString()} hrs`};return {state:"ok",label:`Due @ ${Number(s.next_due_hours).toLocaleString()} hrs`}}
+ return {state:"ok",label:"Schedule active"}
+}
+function scheduleCard(s,detail=false){
+ const a=assets.find(x=>x.id===s.asset_id),st=scheduleState(s),cls=st.state==="overdue"?"overdue":st.state==="soon"?"dueSoon":"";
+ return `<div class="card ${cls}" ${detail?"":`onclick="openDetail('${s.asset_id}')"`}><div class="row"><div><div class="dueLabel ${st.state==="overdue"?"down":st.state==="soon"?"attention":"good"}">${st.state==="overdue"?"OVERDUE":st.state==="soon"?"DUE SOON":"SCHEDULED"}</div><b>${esc(s.title)}</b><div class="tiny">${a?esc(a.name)+" · ":""}${st.label}</div></div>${detail?`<button class="miniBtn" onclick="completeService('${s.id}')">Complete</button>`:"<b>›</b>"}</div></div>`
+}
+
 function assetCard(a){let c=assetCosts(a.id),sum=c.m+c.r+c.e;return `<div class="card asset" onclick="openDetail('${a.id}')"><div class="assetIcon">${icon(a.asset_type)}</div><div class="assetMain"><div class="assetName">${esc(a.name)}</div><div class="muted">${assetMeter(a)}</div><div class="status ${a.status}">${statusText(a.status)}</div><div class="tiny">${money(sum)} recorded costs</div></div><b>›</b></div>`}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function render(){
  let all=assets.map(a=>assetCosts(a.id)),mt=all.reduce((n,c)=>n+c.m,0),rp=all.reduce((n,c)=>n+c.r,0),ex=all.reduce((n,c)=>n+c.e,0);
  goodCount.textContent=assets.filter(a=>a.status==="good").length;attentionCount.textContent=assets.filter(a=>a.status==="attention").length;downCount.textContent=assets.filter(a=>a.status==="down").length;
  allCost.textContent=money(mt+rp+ex);maintCost.textContent=money(mt);repairCost.textContent=money(rp);expenseCost.textContent=money(ex);
- attentionList.innerHTML=assets.filter(a=>a.status!=="good").map(assetCard).join("")||'<div class="empty">Everything looks good.</div>';
+ maintenanceDueList.innerHTML=schedules.map(s=>({s,st:scheduleState(s)})).filter(x=>x.st.state!=="ok").sort((a,b)=>a.st.state==="overdue"?-1:1).map(x=>scheduleCard(x.s)).join("")||'<div class="empty">No maintenance due soon.</div>';attentionList.innerHTML=assets.filter(a=>a.status!=="good").map(assetCard).join("")||'<div class="empty">Everything looks good.</div>';
  equipmentList.innerHTML=assets.map(assetCard).join("")||'<div class="empty">Add your first piece of equipment.</div>';
  workspaceLabel.textContent=workspace?workspace.name:"";
  let h=new Date().getHours();homeGreeting.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
 }
 function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));if(id==="reports")renderReports();scrollTo({top:0,behavior:"smooth"})}
-function openEquipment(){editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqPrice"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;equipmentModal.classList.add("open")}
+function openEquipment(){editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";equipmentModal.classList.add("open")}
 function closeModal(id){document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
  let name=eqName.value.trim();if(!name)return alert("Enter an equipment name.");
- let tracking=eqTracking.value,meter=Number(eqMeter.value||0),body={workspace_id:workspace.id,name,asset_type:eqType.value,status:eqStatus.value,purchase_cost:Number(eqPrice.value||0),current_mileage:tracking==="miles"?meter:null,current_hours:tracking==="hours"?meter:null,updated_at:new Date().toISOString()};
+ let tracking=eqTracking.value,meter=Number(eqMeter.value||0),body={
+   workspace_id:workspace.id,name,asset_type:eqType.value,status:eqStatus.value,
+   make:eqMake.value.trim()||null,model:eqModel.value.trim()||null,
+   year:eqYear.value?Number(eqYear.value):null,serial_number:eqSerial.value.trim()||null,
+   vin:eqVin.value.trim()||null,purchase_cost:Number(eqPrice.value||0),
+   purchase_date:eqPurchaseDate.value||null,notes:eqNotes.value.trim()||null,
+   current_mileage:tracking==="miles"?meter:null,current_hours:tracking==="hours"?meter:null,
+   updated_at:new Date().toISOString()
+ };
  try{
    if(editingId)await sb("/rest/v1/assets?id=eq."+editingId,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});
    else await sb("/rest/v1/assets",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});
-   closeModal("equipmentModal");await reloadCloud();if(editingId)openDetail(editingId);else show("equipment");
+   closeModal("equipmentModal");let id=editingId;await reloadCloud();if(id)openDetail(id);else show("equipment");
  }catch(e){alert(e.message)}
 }
-function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
+function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
 async function deleteEquipment(id){if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
 function quickAdd(){openEntry("maintenance")}
 function openEntry(type,id){entryType.value=type||"maintenance";entryEquipment.innerHTML=assets.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");if(id)entryEquipment.value=id;entryDate.value=today();entryCost.value="";entryDescription.value="";entryNotes.value="";entryModal.classList.add("open")}
@@ -230,21 +256,44 @@ function syncServiceFields(){let d=serviceKind.value==="date";serviceIntervalWra
 async function saveService(){let title=serviceTitle.value.trim();if(!title)return alert("Enter a service name.");let kind=serviceKind.value,body={workspace_id:workspace.id,asset_id:currentId,title,active:true};if(kind==="date"){body.interval_days=Number(serviceDays.value||0)||null;body.next_due_date=serviceDate.value||null}else if(kind==="miles"){body.interval_miles=Number(serviceInterval.value||0)||null;body.next_due_mileage=Number(serviceNext.value||0)||null}else{body.interval_hours=Number(serviceInterval.value||0)||null;body.next_due_hours=Number(serviceNext.value||0)||null}try{await sb("/rest/v1/maintenance_schedules",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});closeModal("serviceModal");await reloadCloud();openDetail(currentId)}catch(e){alert(e.message)}}
 async function markOut(id){let reason=prompt("Reason for downtime (optional)","")||"";try{await sb("/rest/v1/downtime_events",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:id,started_at:new Date().toISOString(),reason,created_by:userId()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"down",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
 async function returnToService(id){let d=downtime.find(x=>x.asset_id===id&&!x.ended_at);if(!d)return;try{await sb("/rest/v1/downtime_events?id=eq."+d.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({ended_at:new Date().toISOString()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
+
+async function completeService(scheduleId){
+ let s=schedules.find(x=>x.id===scheduleId);if(!s)return;
+ let a=assets.find(x=>x.id===s.asset_id);if(!a)return;
+ let costRaw=prompt(`Cost for ${s.title} (enter 0 if none)`,"0");if(costRaw===null)return;
+ let notes=prompt("Notes (optional)","")||"";
+ let cost=Number(costRaw||0),date=today();
+ let rec={workspace_id:workspace.id,asset_id:a.id,schedule_id:s.id,service_date:date,cost,notes:s.title+(notes?" — "+notes:""),created_by:userId()};
+ if(a.current_mileage!=null)rec.mileage=Number(a.current_mileage);
+ if(a.current_hours!=null)rec.engine_hours=Number(a.current_hours);
+ try{
+   await sb("/rest/v1/maintenance_records",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(rec)});
+   let patch={last_service_date:date};
+   if(a.current_mileage!=null)patch.last_service_mileage=Number(a.current_mileage);
+   if(a.current_hours!=null)patch.last_service_hours=Number(a.current_hours);
+   if(s.interval_days){let d=new Date(date+"T00:00:00");d.setDate(d.getDate()+Number(s.interval_days));patch.next_due_date=d.toISOString().slice(0,10)}
+   if(s.interval_miles&&a.current_mileage!=null)patch.next_due_mileage=Number(a.current_mileage)+Number(s.interval_miles);
+   if(s.interval_hours&&a.current_hours!=null)patch.next_due_hours=Number(a.current_hours)+Number(s.interval_hours);
+   await sb("/rest/v1/maintenance_schedules?id=eq."+s.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
+   await reloadCloud();openDetail(a.id);
+ }catch(e){alert(e.message)}
+}
 function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)return;let c=assetCosts(id),active=downtime.find(x=>x.asset_id===id&&!x.ended_at),sch=schedules.filter(x=>x.asset_id===id),hist=[
  ...maintenance.filter(x=>x.asset_id===id).map(x=>({date:x.service_date,type:"Maintenance",title:x.notes||"Maintenance",cost:x.cost})),
  ...repairs.filter(x=>x.asset_id===id).map(x=>({date:(x.opened_at||"").slice(0,10),type:"Repair",title:x.title,cost:x.cost})),
  ...expenses.filter(x=>x.asset_id===id).map(x=>({date:x.expense_date,type:"Expense",title:x.description||x.category,cost:x.amount}))
 ].sort((x,y)=>String(y.date).localeCompare(String(x.date)));
- detailContent.innerHTML=`<div class="row"><div><h1>${esc(a.name)}</h1><p class="${a.status}">${statusText(a.status)}</p></div><button class="miniBtn" onclick="editEquipment('${id}')">Edit</button></div><p class="sub">${assetMeter(a)}</p>
+ detailContent.innerHTML=`<div class="row"><div><h1>${esc(a.name)}</h1><p class="${a.status}">${statusText(a.status)}</p></div><button class="miniBtn" onclick="editEquipment('${id}')">Edit</button></div><p class="sub">${[a.year,a.make,a.model].filter(Boolean).map(esc).join(" ")||esc(a.asset_type||"Equipment")} · ${assetMeter(a)}</p>
+ ${(a.vin||a.serial_number||a.purchase_date||a.notes)?`<div class="card">${a.vin?`<div class="row"><span class="muted">VIN</span><b>${esc(a.vin)}</b></div>`:""}${a.serial_number?`<div class="row"><span class="muted">Serial</span><b>${esc(a.serial_number)}</b></div>`:""}${a.purchase_date?`<div class="row"><span class="muted">Purchased</span><b>${a.purchase_date}</b></div>`:""}${a.notes?`<div class="divider"></div><div class="tiny">${esc(a.notes)}</div>`:""}</div>`:""}
  ${active?`<div class="notice"><b>Out of Service</b><div class="tiny">${esc(active.reason||"No reason recorded")}</div><br><button class="btn wide" onclick="returnToService('${id}')">Return to Service</button></div>`:`<button class="btn secondary wide" onclick="markOut('${id}')">Mark Out of Service</button>`}
  <div class="heroCard"><div class="kicker">RECORDED COSTS</div><div class="money">${money(c.m+c.r+c.e)}</div><div class="metricGrid"><div class="metric"><span class="muted">Maintenance</span><b>${money(c.m)}</b></div><div class="metric"><span class="muted">Repairs</span><b>${money(c.r)}</b></div><div class="metric"><span class="muted">Other</span><b>${money(c.e)}</b></div><div class="metric"><span class="muted">Purchase</span><b>${money(a.purchase_cost)}</b></div></div></div>
- <h2>Maintenance Schedule</h2><button class="btn secondary wide" onclick="openService('${id}')">+ Add Schedule</button><div style="height:10px"></div>${sch.length?sch.map(s=>`<div class="card"><b>${esc(s.title)}</b><div class="tiny">${s.next_due_date?`Due ${s.next_due_date}`:s.next_due_mileage!=null?`Due @ ${Number(s.next_due_mileage).toLocaleString()} miles`:s.next_due_hours!=null?`Due @ ${Number(s.next_due_hours).toLocaleString()} hours`:"Schedule active"}</div></div>`).join(""):'<div class="empty">No scheduled maintenance yet.</div>'}
+ <h2>Maintenance Schedule</h2><button class="btn secondary wide" onclick="openService('${id}')">+ Add Schedule</button><div style="height:10px"></div>${sch.length?sch.map(s=>scheduleCard(s,true)).join(""):'<div class="empty">No scheduled maintenance yet.</div>'}
  <div class="row" style="margin-top:14px"><button class="btn" onclick="openEntry('maintenance','${id}')">+ Maintenance</button><button class="btn" onclick="openEntry('repair','${id}')">+ Repair</button></div><br><button class="btn secondary wide" onclick="openEntry('expense','${id}')">+ Other Expense</button>
  <h2>History</h2>${hist.length?hist.map(x=>`<div class="card row"><div><b>${esc(x.title)}</b><div class="tiny">${x.date} · ${x.type}</div></div><b>${money(x.cost)}</b></div>`).join(""):'<div class="empty">No history yet.</div>'}
  <br><button class="btn danger wide" onclick="deleteEquipment('${id}')">Delete Equipment</button>`;
  show("detail");
 }
-function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||'<div class="empty">Record costs to unlock reports.</div>'}`}
+function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div><div class="metric"><span class="muted">Highest cost</span><b>${rows[0]?money(rows[0].total):money(0)}</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||'<div class="empty">Record costs to unlock reports.</div>'}`}
 function syncProfile(){profileNameText.textContent=profile?.display_name||"CostRig User";profileEmailText.textContent=authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase()}
 init();
 </script>
