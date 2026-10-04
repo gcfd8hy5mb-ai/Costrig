@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig V4.1.4</title>
+<title>CostRig V4.1.5</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -36,7 +36,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
       <h1>Your equipment data, backed up and account-scoped.</h1>
       <p class="sub">Sign in on any device and CostRig will load only the workspace tied to your account.</p>
     </div>
-    <div class="seg"><button id="signInTab" class="active" onclick="setAuthMode('signin')">Sign In</button><button id="signUpTab" onclick="setAuthMode('signup')">Create Account</button></div>
+    <div class="seg"><button id="signInTab" type="button" class="active">Sign In</button><button id="signUpTab" type="button">Create Account</button></div>
     <div class="card">
       <label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
       <label>Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters">
@@ -44,15 +44,16 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
         <label>Your name</label><input id="authName" placeholder="Your name">
         <label>Business name</label><input id="authBusiness" placeholder="My Business">
       </div>
-      <br><button id="authSubmit" type="button" class="btn wide" onclick="submitAuth()">Sign In</button>
+      <br><button id="authSubmit" type="button" class="btn wide">Sign In</button>
       <div id="authMessage" class="tiny" style="margin-top:12px"></div>
+      <div id="runtimeStatus" class="tiny" style="margin-top:8px;color:#7f8992">Starting CostRig…</div>
     </div>
     <p class="tiny" style="text-align:center">CostRig uses your account ID and workspace membership to isolate business data with Supabase Row Level Security.</p>
   </div>
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1.4</button></header>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1.5</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -150,6 +151,7 @@ const authName=document.getElementById("authName");
 const authBusiness=document.getElementById("authBusiness");
 const authMessage=document.getElementById("authMessage");
 const authSubmit=document.getElementById("authSubmit");
+const runtimeStatus=document.getElementById("runtimeStatus");
 const signInTab=document.getElementById("signInTab");
 const signUpTab=document.getElementById("signUpTab");
 const signupFields=document.getElementById("signupFields");
@@ -426,6 +428,55 @@ function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)retur
 }
 function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div><div class="metric"><span class="muted">Highest cost</span><b>${rows[0]?money(rows[0].total):money(0)}</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||'<div class="empty">Record costs to unlock reports.</div>'}`}
 function syncProfile(){profileNameText.textContent=profile?.display_name||"CostRig User";profileEmailText.textContent=authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase()}
+
+
+window.addEventListener("error",(e)=>{
+ try{
+   if(runtimeStatus){
+     runtimeStatus.textContent="App error: "+(e.message||"Unknown JavaScript error");
+     runtimeStatus.className="tiny authError";
+   }
+ }catch{}
+});
+window.addEventListener("unhandledrejection",(e)=>{
+ try{
+   if(runtimeStatus){
+     const msg=e.reason?.message||String(e.reason||"Unhandled promise error");
+     runtimeStatus.textContent="App error: "+msg;
+     runtimeStatus.className="tiny authError";
+   }
+ }catch{}
+});
+
+function wireStaticControls(){
+ try{
+   signInTab.addEventListener("click",()=>setAuthMode("signin"));
+   signUpTab.addEventListener("click",()=>setAuthMode("signup"));
+   authSubmit.addEventListener("click",()=>submitAuth());
+
+   // Fallback delegation for the main navigation and static buttons.
+   document.addEventListener("click",(ev)=>{
+     const b=ev.target.closest("button");
+     if(!b)return;
+
+     // If an inline handler exists and works, let it handle the click.
+     // These fallbacks only cover static navigation if inline handlers are unavailable.
+     if(b.dataset.screen){
+       ev.preventDefault();
+       show(b.dataset.screen);
+     }
+   });
+
+   runtimeStatus.textContent="CostRig controls loaded ✓";
+   runtimeStatus.className="tiny authOk";
+ }catch(err){
+   runtimeStatus.textContent="Startup error: "+(err?.message||String(err));
+   runtimeStatus.className="tiny authError";
+   console.error("CostRig startup wiring failed",err);
+ }
+}
+wireStaticControls();
+
 init();
 </script>
 </body>
