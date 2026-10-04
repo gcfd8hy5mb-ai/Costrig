@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" href="./icon-192.png" type="image/png">
-<title>Equipment Cost Book V4.8.1</title>
+<title>Equipment Cost Book V4.9.0</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -135,6 +135,14 @@ label{margin-top:18px;font-size:13px;font-weight:500;color:#CDDAEC}input,select,
 <button class="btn wide" style="margin-top:12px" onclick="saveWorkspaceName()">Save Company Name</button>
 </div>
 
+<h2>Date reminders</h2>
+<div class="card">
+  <b>Maintenance reminders</b>
+  <p class="sub" style="margin:8px 0 16px">Get a notification 7 days before, 1 day before, and on the due date. Date schedules only; mileage and hour schedules stay in the app.</p>
+  <div id="pushStatus" class="tiny" role="status" aria-live="polite">Checking notification support…</div>
+  <button id="enablePushBtn" type="button" class="btn wide" style="margin-top:12px" onclick="enableDateReminders()">Enable Notifications</button>
+  <button id="disablePushBtn" type="button" class="btn secondary wide hidden" style="margin-top:12px" onclick="disableDateReminders()">Turn Off Notifications</button>
+</div>
 <h2>Team</h2>
 <div id="teamAdminPanel" class="card">
 <label for="inviteEmail">Invite employee by email</label><input id="inviteEmail" type="email" placeholder="employee@example.com">
@@ -148,7 +156,7 @@ label{margin-top:18px;font-size:13px;font-weight:500;color:#CDDAEC}input,select,
 <div id="activityList"></div>
 
 <button class="btn secondary wide" onclick="reloadCloud()">Refresh Cloud Data</button><br><br>
-<button class="btn danger wide" onclick="signOut()">Sign Out</button><p class="versionNote">Equipment Cost Book · V4.8.1</p>
+<button class="btn danger wide" onclick="signOut()">Sign Out</button><p class="versionNote">Equipment Cost Book · V4.9.0</p>
 </section>
 </div>
 
@@ -200,7 +208,7 @@ label{margin-top:18px;font-size:13px;font-weight:500;color:#CDDAEC}input,select,
 <label for="serviceTitle">Service</label><input id="serviceTitle" placeholder="Oil Change">
 <label for="serviceKind">Schedule by</label><select id="serviceKind" onchange="syncServiceFields()"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="date">Date</option></select>
 <div id="serviceIntervalWrap"><label for="serviceInterval">Repeat every</label><input id="serviceInterval" type="number" inputmode="decimal" placeholder="100"><label for="serviceNext">Next due at</label><input id="serviceNext" type="number" inputmode="decimal"></div>
-<div id="serviceDateWrap" class="hidden"><label for="serviceDays">Repeat every (days)</label><input id="serviceDays" type="number" value="365"><label for="serviceDate">Next due date</label><input id="serviceDate" type="date"></div>
+<div id="serviceDateWrap" class="hidden"><p class="tiny">Date reminders are available in Profile after you enable notifications.</p><label for="serviceDays">Repeat every (days)</label><input id="serviceDays" type="number" value="365"><label for="serviceDate">Next due date</label><input id="serviceDate" type="date"></div>
 <br><button class="btn wide" onclick="saveService()">Save Schedule</button>
 </div></div>
 
@@ -226,6 +234,7 @@ let authMode="signin", session=null, workspace=null, profile=null, entitlement=n
 let assets=[], maintenance=[], repairs=[], expenses=[], schedules=[], downtime=[], teamMembers=[], activityItems=[];
 let currentRole="viewer";
 let currentId=null, editingId=null;
+let pendingPushAsset=new URLSearchParams(location.search).get("asset");
 
 // Explicit DOM references. Do not rely on browser-generated globals from element IDs.
 const authScreen=document.getElementById("authScreen");
@@ -321,7 +330,7 @@ const serviceDays=document.getElementById("serviceDays");
 const serviceDate=document.getElementById("serviceDate");
 
 function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n||0))}
-function today(){return new Date().toISOString().slice(0,10)}
+function today(){let d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
 function authHeaders(json=true){let h={apikey:SB_KEY};if(session?.access_token)h.Authorization="Bearer "+session.access_token;if(json)h["Content-Type"]="application/json";return h}
 async function sb(path,opts={}){let r=await fetch(SB_URL+path,{...opts,headers:{...authHeaders(!(opts.body instanceof FormData)),...(opts.headers||{})}});let txt=await r.text();let data=txt?(()=>{try{return JSON.parse(txt)}catch{return txt}})():null;if(!r.ok)throw new Error(data?.message||data?.error_description||data?.hint||data?.details||String(data||r.status));return {data,headers:r.headers,status:r.status}}
 function saveSession(){if(session)localStorage.setItem("costrig_session",JSON.stringify(session));else localStorage.removeItem("costrig_session")}
@@ -414,7 +423,7 @@ async function enterAppSafe(){
  }
 }
 async function enterApp(){return await enterAppSafe()}
-async function signOut(){try{await fetch(SB_URL+"/auth/v1/logout",{method:"POST",headers:authHeaders(false)})}catch{}session=null;saveSession();location.reload()}
+async function signOut(){try{await removeCurrentPush()}catch{}try{await fetch(SB_URL+"/auth/v1/logout",{method:"POST",headers:authHeaders(false)})}catch{}session=null;saveSession();location.reload()}
 async function reloadCloud(){
  if(!session?.access_token)throw new Error("No active Equipment Cost Book session.");
  let uid=userId(); if(!uid)throw new Error("Could not read the signed-in user.");
@@ -439,6 +448,8 @@ async function reloadCloud(){
  ]);
  profile=p.data?.[0]||null;entitlement=en.data?.[0]||{plan:"free"};assets=a.data||[];maintenance=m.data||[];repairs=r.data||[];expenses=e.data||[];schedules=s.data||[];downtime=d.data||[];teamMembers=tm.data||[];activityItems=act.data||[];
  render();renderReports();syncProfile();renderTeam();renderActivity();
+ syncPushStatus();
+ if(pendingPushAsset){let target=pendingPushAsset;pendingPushAsset=null;if(assets.some(a=>a.id===target))openDetail(target);history.replaceState(null,"",location.pathname); }
 }
 function assetMeter(a){if(a.current_mileage!=null)return Number(a.current_mileage).toLocaleString()+" mi";if(a.current_hours!=null)return Number(a.current_hours).toLocaleString()+" hrs";return a.asset_type||"Equipment"}
 function icon(t){
@@ -570,7 +581,7 @@ function render(){
  workspaceLabel.textContent=workspace?workspace.name:"";
  let h=new Date().getHours();homeGreeting.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
 }
-function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));if(id==="reports")renderReports();scrollTo({top:0,behavior:"auto"})}
+function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));if(id==="reports")renderReports();if(id==="profile")syncPushStatus();scrollTo({top:0,behavior:"auto"})}
 
 function normalizeVin(v){
  return String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/[IOQ]/g,"");
@@ -1012,6 +1023,67 @@ window.addEventListener("unhandledrejection",(e)=>{
      runtimeStatus.className="tiny authError";
    }
  }catch{}
+});
+
+
+const VAPID_PUBLIC_KEY="BAo212SU7esYQmSk_61ldG3TXNBEMZ7dQxh-R-zuxPpKjArmTw2PrStEOjGyz75Pzw_NfuLWPcUDD-Q06V3dsi0";
+function vapidBytes(key){const raw=atob(key.replace(/-/g,"+").replace(/_/g,"/")+"=".repeat((4-key.length%4)%4));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
+async function getPushRegistration(){
+ if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window))return null;
+ return await navigator.serviceWorker.getRegistration("./");
+}
+async function syncPushStatus(){
+ const label=document.getElementById("pushStatus"),on=document.getElementById("enablePushBtn"),off=document.getElementById("disablePushBtn");
+ if(!label||!session)return;
+ if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){
+   label.textContent="On iPhone, add Cost Book to your Home Screen, then open it from its icon to enable notifications.";
+   on.classList.add("hidden");off.classList.add("hidden");return;
+ }
+ try{
+   const registration=await getPushRegistration();const subscription=await registration?.pushManager.getSubscription();
+   const enabled=!!subscription&&Notification.permission==="granted";
+   label.textContent=enabled?"Notifications are on for this device.":Notification.permission==="denied"?"Notifications are blocked. Allow Cost Book in your device settings.":"Notifications are off on this device.";
+   on.classList.toggle("hidden",enabled||Notification.permission==="denied");
+   off.classList.toggle("hidden",!enabled);
+ }catch(e){label.textContent="Could not check notifications: "+e.message}
+}
+async function enableDateReminders(){
+ const label=document.getElementById("pushStatus");
+ if(!session||!workspace)return;
+ if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){await syncPushStatus();return}
+ // iPhone requires permission to be requested directly from this tap.
+ const permission=await Notification.requestPermission();
+ if(permission!=="granted"){await syncPushStatus();return}
+ label.textContent="Connecting notifications…";
+ let freshSubscription=null;
+ try{
+   const registration=await navigator.serviceWorker.register("./sw.js",{scope:"./"});
+   await navigator.serviceWorker.ready;
+   let subscription=await registration.pushManager.getSubscription();
+   if(!subscription){subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:vapidBytes(VAPID_PUBLIC_KEY)});freshSubscription=subscription}
+   const data=subscription.toJSON();
+   if(!data.endpoint||!data.keys?.p256dh||!data.keys?.auth)throw new Error("The device did not return a usable subscription.");
+   await sb("/rest/v1/push_subscriptions?on_conflict=endpoint",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({user_id:userId(),workspace_id:workspace.id,endpoint:data.endpoint,p256dh:data.keys.p256dh,auth:data.keys.auth,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||"UTC",enabled:true})});
+   await syncPushStatus();
+ }catch(e){
+   if(freshSubscription)try{await freshSubscription.unsubscribe()}catch{}
+   label.textContent="Could not enable notifications: "+e.message;
+ }
+}
+async function removeCurrentPush(){
+ const registration=await getPushRegistration();const subscription=await registration?.pushManager.getSubscription();
+ if(!subscription)return;
+ try{
+   if(session?.access_token)await sb("/rest/v1/push_subscriptions?endpoint=eq."+encodeURIComponent(subscription.endpoint),{method:"DELETE",headers:{Prefer:"return=minimal"}});
+ }finally{await subscription.unsubscribe()}
+}
+async function disableDateReminders(){
+ try{await removeCurrentPush();await syncPushStatus()}catch(e){document.getElementById("pushStatus").textContent="Could not turn off notifications: "+e.message}
+}
+navigator.serviceWorker?.addEventListener("message",e=>{
+ if(e.data?.type!=="costrig-open-asset"||!e.data.assetId)return;
+ if(assets.some(a=>a.id===e.data.assetId))openDetail(e.data.assetId);
+ else pendingPushAsset=e.data.assetId;
 });
 
 function wireStaticControls(){
