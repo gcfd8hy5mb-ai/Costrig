@@ -3,8 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#090c10">
-<title>Equipment Cost Book V4.7.3</title>
+<meta name="theme-color" content="#0F172A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cost Book">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<title>Equipment Cost Book V4.8.0</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -24,6 +29,23 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 .auth{position:fixed;inset:0;z-index:60;background:var(--bg);padding:calc(28px + env(safe-area-inset-top)) 20px;overflow:auto}.auth.hidden{display:none}.authInner{max-width:460px;margin:auto}.authHero{padding:50px 0 20px}.authHero h1{font-size:38px;line-height:1.05}.seg{display:grid;grid-template-columns:1fr 1fr;background:#303944;border:1px solid var(--line);border-radius:13px;padding:4px;gap:4px}.seg button{border:0;border-radius:10px;padding:10px;background:transparent;color:var(--muted);font-weight:800}.seg button.active{background:var(--orange);color:#FFFFFF}
 .empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed #2b3741;border-radius:15px}.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#343E49;border:1px solid var(--line);border-radius:13px;padding:12px}.metric b{display:block;font-size:19px;margin-top:4px}.pill{font-size:11px;padding:5px 8px;border-radius:999px;background:#25303a}
 .notice{padding:12px;border:1px solid #4c3826;background:#17130f;border-radius:13px;color:#e8d5c2;margin:10px 0}.success{border-color:#1c5c3c;background:#10291f}.authError{color:#ff7c72}.authOk{color:#65d89c}.dueSoon{border-color:#5a471c;background:#211b0d}.overdue{border-color:#6b2522;background:#271211}.dueLabel{font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}.hidden{display:none!important}
+
+/* Mobile polish: shared spacing, typography, and accessible contrast. */
+:root{--card:#202C3D;--card2:#29374A;--line:#3A4B60;--text:#F4F7FC;--muted:#B0BED0;--orange:#A9C8EF}
+body{font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.app{padding-left:20px;padding-right:20px;padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+header{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid #28374A;gap:16px}
+.brand{gap:10px;font-weight:650;letter-spacing:0;white-space:normal;min-width:0}.brandMark{width:39px;height:43px;border:1px solid #4A6382;background:#263952;border-radius:11px;flex-shrink:0}.brandMark svg{width:24px;height:24px}.brandWords{display:flex;flex-direction:column;gap:2px}.brand .brandMain{color:var(--muted);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;font-weight:500}.brand .brandAccent{color:var(--text);font-size:20px;letter-spacing:-.4px;line-height:1.1}
+.profileButton{width:44px;height:44px;padding:10px;border-radius:50%;background:#233249;flex-shrink:0}.profileButton svg{width:22px;height:22px}
+h1{font-size:28px;line-height:1.2;letter-spacing:-.7px;font-weight:650;margin:8px 0}h2{font-size:17px;font-weight:600;letter-spacing:-.15px;margin:28px 0 12px}.sub{font-size:14px;line-height:1.5;margin-bottom:22px}.sectionEyebrow,.kicker{font-size:10px;font-weight:600;letter-spacing:1.1px}.tiny{font-size:12px;line-height:1.5}.row{gap:12px}.row>div{min-width:0}.row>button,.row>.pill{flex-shrink:0}.row b,.metric b,.assetName{overflow-wrap:anywhere}
+.card,.heroCard{padding:16px;border:1px solid #33445B;border-radius:18px;box-shadow:none;margin-bottom:12px}.grid3{gap:8px}.stat{padding:13px 5px}.stat b{font-size:26px;font-weight:600;line-height:1.25;font-variant-numeric:tabular-nums}.stat span{font-size:10px;line-height:1.2;display:block;margin-top:6px}.costSummary{margin-top:12px;background:linear-gradient(135deg,#293D58,#202C3D);padding:20px}.costSummary .money{margin-top:7px;margin-bottom:8px}.costSummary .row{padding:5px 0;font-size:13px}.costSummary .row span{color:var(--muted)}.money{font-size:36px;line-height:1.25;letter-spacing:-1.3px;font-weight:650;font-variant-numeric:tabular-nums}.divider{margin:16px 0}.metricGrid{gap:10px}.metric{background:#25354B;border-color:#3A4B60;padding:14px;border-radius:14px}.metric .muted{font-size:12px}.metric b{font-size:20px;font-weight:600;line-height:1.25}.metric .tiny{margin-top:5px}.assetIcon{background:#293C54;border:1px solid #3A4F6A;width:48px;height:48px;font-size:24px}.assetIcon svg{width:27px;height:27px;color:#BCD2EF}.assetMain{min-width:0}.assetName{font-size:16px;font-weight:600}.asset .muted{font-size:12px}.status{font-weight:500;font-size:12px}.asset .tiny{margin-top:5px}
+.btn{background:#45668D;font-weight:600;min-height:48px;line-height:1.3;border-radius:12px;padding:13px 16px;font-size:14px}.btn.secondary,.miniBtn,.badge{background:#293B52;border-color:#49617E}.miniBtn{min-height:44px;font-size:12px;font-weight:500;padding:10px 12px}.btn:active,.miniBtn:active,.nav button:active{filter:brightness(1.18)}button:focus-visible{outline:2px solid #C5DEFF;outline-offset:3px}.btn.danger{background:#3A2229;border-color:#6F3941;color:#FFA9A9}.pill{background:#304660;color:#CDDEF5;white-space:nowrap;font-weight:600;letter-spacing:.4px}
+label{margin-top:18px;font-size:13px;font-weight:500;color:#CDDAEC}input,select,textarea{font-size:16px;min-width:0;background:#1A2739;border-color:#445B76;min-height:49px;border-radius:12px;padding:12px;color:var(--text)}input::placeholder,textarea::placeholder{color:#91A3BC}input:focus,select:focus,textarea:focus{border-color:#A9C8EF;box-shadow:0 0 0 3px #A9C8EF20}.empty{padding:24px 18px;border:1px dashed #49617E;background:#182538;font-size:13px;border-radius:16px}.notice{line-height:1.5}
+.screen{padding-bottom:16px}.nav{background:#192538;border-color:#3B4D66;padding:7px 6px calc(7px + env(safe-area-inset-bottom));gap:2px}.nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:58px;font-size:10px;line-height:1.1;color:#AEBED2;padding:7px 2px;white-space:nowrap}.nav svg{width:22px;height:22px;flex-shrink:0}.nav .active{color:#D9E9FF;background:#304765}
+.modal{padding:calc(16px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom));background:#050B15D9}.modalBox{background:#202C3D;border-color:#405571;margin:10px auto 30px;border-radius:22px;padding:20px}.modalBox h2{margin-top:4px;margin-bottom:18px;font-size:21px}.close{width:44px;height:44px;margin:-4px -4px 4px 8px;background:#2C3D55;float:right;font-size:16px}.modalBox .sub{margin-bottom:24px}
+.auth{padding:calc(24px + env(safe-area-inset-top)) 20px 32px}.authHero{padding:34px 0 6px}.authHero h1{font-size:34px;line-height:1.14;letter-spacing:-1px;font-weight:650;margin:10px 0 14px}.auth .card{margin-top:16px}.auth .card label:first-child{margin-top:0}.auth .brand{margin-bottom:5px}.seg{background:#1B293D;border-color:#3C516D;padding:4px}.seg button{font-size:13px;font-weight:550;min-height:44px}.seg button.active{background:#3F5D82}.versionNote{color:var(--muted);text-align:center;font-size:11px;margin:26px 0 0}#runtimeStatus.authOk{display:none}
+@media(max-width:360px){.app{padding-left:16px;padding-right:16px}.brand .brandAccent{font-size:18px}.metricGrid{gap:8px}.metric{padding:11px}.nav button{font-size:9px}.row{gap:8px}.btn{padding:12px}.authHero h1{font-size:30px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
 <script src="https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
 </head>
@@ -31,42 +53,41 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 
 <div id="authScreen" class="auth">
   <div class="authInner">
-    <div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div>
+    <div class="brand"><span class="brandMark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v16H5Z"/><path d="M9 4v16m3-11h4m-4 4h4"/></svg></span><span class="brandWords"><span class="brandMain">Equipment</span><span class="brandAccent">Cost Book</span></span></div>
     <div class="authHero">
-      <div class="kicker">SECURE CLOUD SYNC</div>
-      <h1>Your equipment costs, maintenance, and downtime in one place.</h1>
-      <p class="sub">Sign in on any device to securely load your equipment records and cost history.</p>
+      <div class="kicker">YOUR EQUIPMENT. YOUR BUSINESS.</div>
+      <h1>Know what your equipment really costs.</h1>
+      <p class="sub">Keep maintenance, repairs, and downtime together. Sign in to pick up where you left off.</p>
     </div>
     <div class="seg"><button id="signInTab" type="button" class="active">Sign In</button><button id="signUpTab" type="button">Create Account</button></div>
     <div class="card">
-      <label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
-      <label>Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters">
-<label>Invite code <span class="muted">(optional)</span></label><input id="authInviteCode" placeholder="Paste a team invite code">
+      <label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+<label for="authInviteCode">Invite code <span class="muted">(optional)</span></label><input id="authInviteCode" placeholder="Paste a team invite code">
       <div id="signupFields" class="hidden">
-        <label>Your name</label><input id="authName" placeholder="Your name">
-        <label>Business name</label><input id="authBusiness" placeholder="My Business">
+        <label for="authName">Your name</label><input id="authName" placeholder="Your name">
+        <label for="authBusiness">Business name</label><input id="authBusiness" placeholder="My Business">
       </div>
       <br><button id="authSubmit" type="button" class="btn wide">Sign In</button>
       <div id="authMessage" class="tiny" style="margin-top:12px"></div>
       <div id="runtimeStatus" class="tiny" style="margin-top:8px;color:#7f8992">Starting Equipment Cost Book…</div>
     </div>
-    <p class="tiny" style="text-align:center">Equipment Cost Book uses your account ID and workspace membership to isolate business data with Supabase Row Level Security.</p>
+    <p class="tiny" style="text-align:center">Your equipment records sync securely across your devices.</p>
   </div>
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.7.3</button></header>
-<div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
+<header><div class="brand"><span class="brandMark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v16H5Z"/><path d="M9 4v16m3-11h4m-4 4h4"/></svg></span><span class="brandWords"><span class="brandMain">Equipment</span><span class="brandAccent">Cost Book</span></span></div><button class="badge profileButton" aria-label="Profile and settings" onclick="show('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></button></header>
+
 
 <section id="home" class="screen active">
 <div class="sectionEyebrow">Equipment overview</div><h1 id="homeGreeting">Equipment Cost Book</h1><p class="sub" id="workspaceLabel">Loading workspace…</p>
 <div class="grid3">
 <div class="card stat good"><b id="goodCount">0</b><span>Good</span></div>
 <div class="card stat attention"><b id="attentionCount">0</b><span>Attention</span></div>
-<div class="card stat down"><b id="downCount">0</b><span>Out</span></div>
+<div class="card stat down"><b id="downCount">0</b><span>Out of service</span></div>
 </div>
-<h2>Recorded costs</h2>
-<div class="card"><div class="money" id="allCost">$0</div><div class="divider"></div><div class="row"><span>Maintenance</span><b id="maintCost">$0</b></div><div class="row"><span>Repairs</span><b id="repairCost">$0</b></div><div class="row"><span>Other</span><b id="expenseCost">$0</b></div></div>
+<div class="heroCard costSummary"><div class="kicker">TOTAL OPERATING COSTS</div><div class="money" id="allCost">$0</div><div class="divider"></div><div class="row"><span>Maintenance</span><b id="maintCost">$0</b></div><div class="row"><span>Repairs</span><b id="repairCost">$0</b></div><div class="row"><span>Other</span><b id="expenseCost">$0</b></div></div>
 <h2>Cost intelligence</h2>
 <div id="costIntelligence"></div>
 <h2>Active repairs</h2><div id="activeRepairsList"></div><h2>Maintenance due</h2><div id="maintenanceDueList"></div><h2>Needs attention</h2><div id="attentionList"></div>
@@ -83,7 +104,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </section>
 
 <section id="reports" class="screen">
-<div class="sectionEyebrow">Equipment Cost Book Pro preview</div><h1>Reports & Insights</h1><p class="sub">Cloud-backed costs and downtime by equipment.</p>
+<div class="sectionEyebrow">Cost overview</div><h1>Reports & Insights</h1><p class="sub">Costs, repairs, and downtime at a glance.</p>
 <div id="reportsContent"></div>
 </section>
 
@@ -110,14 +131,14 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 
 <h2>Company</h2>
 <div class="card">
-<label>Company / workspace name</label><input id="workspaceNameInput" placeholder="My Business">
+<label for="workspaceNameInput">Company / workspace name</label><input id="workspaceNameInput" placeholder="My Business">
 <button class="btn wide" style="margin-top:12px" onclick="saveWorkspaceName()">Save Company Name</button>
 </div>
 
 <h2>Team</h2>
 <div id="teamAdminPanel" class="card">
-<label>Invite employee by email</label><input id="inviteEmail" type="email" placeholder="employee@example.com">
-<label>Role</label><select id="inviteRole"><option value="technician">Technician</option><option value="manager">Manager</option><option value="viewer">Viewer</option></select>
+<label for="inviteEmail">Invite employee by email</label><input id="inviteEmail" type="email" placeholder="employee@example.com">
+<label for="inviteRole">Role</label><select id="inviteRole"><option value="technician">Technician</option><option value="manager">Manager</option><option value="viewer">Viewer</option></select>
 <button class="btn wide" style="margin-top:12px" onclick="createTeamInvite()">Create Invite</button>
 <div id="inviteResult" class="tiny" style="margin-top:10px"></div>
 </div>
@@ -127,71 +148,71 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 <div id="activityList"></div>
 
 <button class="btn secondary wide" onclick="reloadCloud()">Refresh Cloud Data</button><br><br>
-<button class="btn danger wide" onclick="signOut()">Sign Out</button>
+<button class="btn danger wide" onclick="signOut()">Sign Out</button><p class="versionNote">Equipment Cost Book · V4.8.0</p>
 </section>
 </div>
 
-<nav class="nav">
-<button data-screen="home" class="active" onclick="show('home')"><b>⌂</b>Home</button>
-<button data-screen="equipment" onclick="show('equipment')"><b>▦</b>Equipment</button>
-<button id="navVinBtn" type="button" onclick="openVinFromNav()"><b>⌁</b>VIN</button>
-<button onclick="quickAdd()"><b>＋</b>Quick Add</button>
-<button data-screen="reports" onclick="show('reports')"><b>▤</b>Reports</button>
+<nav class="nav" aria-label="Main navigation">
+<button data-screen="home" class="active" onclick="show('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg><span>Home</span></button>
+<button data-screen="equipment" onclick="show('equipment')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18M9 4v16"/></svg><span>Equipment</span></button>
+<button id="navVinBtn" type="button" onclick="openVinFromNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H4a1 1 0 0 0-1 1v4m13-5h4a1 1 0 0 1 1 1v4M3 16v4a1 1 0 0 0 1 1h4m8 0h4a1 1 0 0 0 1-1v-4M7 7v10M10 7v10M14 7v10M17 7v10"/></svg><span>VIN</span></button>
+<button onclick="quickAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8m-4-4h8"/></svg><span>Quick Add</span></button>
+<button data-screen="reports" onclick="show('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18h17M9 16v-5m5 5V7m5 9V4"/></svg><span>Reports</span></button>
 </nav>
 
 <div id="equipmentModal" class="modal"><div class="modalBox">
-<button class="close" onclick="closeModal('equipmentModal')">✕</button><h2 id="equipmentModalTitle">Add Equipment</h2>
-<label>Name</label><input id="eqName" placeholder="Exmark Lazer Z">
-<label>Type</label><select id="eqType"><option>Mower</option><option>Truck</option><option>Trailer</option><option>Generator</option><option>Compressor</option><option>Tool</option><option>Other</option></select>
-<div class="metricGrid"><div><label>Year</label><input id="eqYear" type="number" inputmode="numeric" placeholder="2024"></div><div><label>Make</label><input id="eqMake" placeholder="Ford"></div></div>
-<label>Model</label><input id="eqModel" placeholder="F-250">
-<div class="metricGrid"><div><label>Vehicle type</label><input id="eqVehicleType" placeholder="Truck"></div><div><label>Body class</label><input id="eqBodyClass" placeholder="Pickup"></div></div>
-<label>Engine</label><input id="eqEngineDescription" placeholder="Decoded when available">
-<div class="metricGrid"><div><label>Serial #</label><input id="eqSerial" placeholder="Optional"></div><div><label>VIN</label><input id="eqVin" maxlength="17" autocapitalize="characters" placeholder="17-character VIN"></div></div>
+<button class="close" aria-label="Close dialog" onclick="closeModal('equipmentModal')">✕</button><h2 id="equipmentModalTitle">Add Equipment</h2>
+<label for="eqName">Name</label><input id="eqName" placeholder="Exmark Lazer Z">
+<label for="eqType">Type</label><select id="eqType"><option>Mower</option><option>Truck</option><option>Trailer</option><option>Generator</option><option>Compressor</option><option>Tool</option><option>Other</option></select>
+<div class="metricGrid"><div><label for="eqYear">Year</label><input id="eqYear" type="number" inputmode="numeric" placeholder="2024"></div><div><label for="eqMake">Make</label><input id="eqMake" placeholder="Ford"></div></div>
+<label for="eqModel">Model</label><input id="eqModel" placeholder="F-250">
+<div class="metricGrid"><div><label for="eqVehicleType">Vehicle type</label><input id="eqVehicleType" placeholder="Truck"></div><div><label for="eqBodyClass">Body class</label><input id="eqBodyClass" placeholder="Pickup"></div></div>
+<label for="eqEngineDescription">Engine</label><input id="eqEngineDescription" placeholder="Decoded when available">
+<div class="metricGrid"><div><label for="eqSerial">Serial #</label><input id="eqSerial" placeholder="Optional"></div><div><label for="eqVin">VIN</label><input id="eqVin" maxlength="17" autocapitalize="characters" placeholder="17-character VIN"></div></div>
 <div class="metricGrid" style="margin-top:10px"><button id="scanVinBtn" type="button" class="btn secondary" onclick="startVinScan()">Scan VIN</button><button type="button" class="btn secondary" onclick="lookupVin()">Look Up VIN</button></div>
 <div id="vinLookupStatus" class="tiny" style="margin-top:8px"></div>
-<label>Tracking</label><select id="eqTracking"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="none">No meter</option></select>
-<label>Current hours/mileage</label><input id="eqMeter" type="number" inputmode="decimal" value="0">
-<div class="metricGrid"><div><label>Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" placeholder="0"></div><div><label>Purchase date</label><input id="eqPurchaseDate" type="date"></div></div>
-<label>Status</label><select id="eqStatus"><option value="good">Good</option><option value="attention">Needs Attention</option><option value="down">Out of Service</option></select>
-<label>Notes</label><textarea id="eqNotes" placeholder="Ownership, warranty, location, attachments, or anything useful"></textarea>
+<label for="eqTracking">Tracking</label><select id="eqTracking"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="none">No meter</option></select>
+<label for="eqMeter">Current hours/mileage</label><input id="eqMeter" type="number" inputmode="decimal" value="0">
+<div class="metricGrid"><div><label for="eqPrice">Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" placeholder="0"></div><div><label for="eqPurchaseDate">Purchase date</label><input id="eqPurchaseDate" type="date"></div></div>
+<label for="eqStatus">Status</label><select id="eqStatus"><option value="good">Good</option><option value="attention">Needs Attention</option><option value="down">Out of Service</option></select>
+<label for="eqNotes">Notes</label><textarea id="eqNotes" placeholder="Ownership, warranty, location, attachments, or anything useful"></textarea>
 <br><br><button class="btn wide" onclick="saveEquipment()">Save Equipment</button>
 </div></div>
 
 <div id="entryModal" class="modal"><div class="modalBox">
-<button class="close" onclick="closeModal('entryModal')">✕</button><h2>Add Cost</h2>
-<label>Equipment</label><select id="entryEquipment"></select>
-<label>Type</label><select id="entryType" onchange="repairFields.classList.toggle('hidden',this.value!=='repair')"><option value="maintenance">Maintenance</option><option value="repair">Repair</option><option value="expense">Other Expense</option></select>
-<label>Cost</label><input id="entryCost" type="number" inputmode="decimal" placeholder="0.00">
-<label>Description</label><input id="entryDescription" placeholder="Oil + filter">
-<label>Date</label><input id="entryDate" type="date">
+<button class="close" aria-label="Close dialog" onclick="closeModal('entryModal')">✕</button><h2>Add Cost</h2>
+<label for="entryEquipment">Equipment</label><select id="entryEquipment"></select>
+<label for="entryType">Type</label><select id="entryType" onchange="repairFields.classList.toggle('hidden',this.value!=='repair')"><option value="maintenance">Maintenance</option><option value="repair">Repair</option><option value="expense">Other Expense</option></select>
+<label for="entryCost">Cost</label><input id="entryCost" type="number" inputmode="decimal" placeholder="0.00">
+<label for="entryDescription">Description</label><input id="entryDescription" placeholder="Oil + filter">
+<label for="entryDate">Date</label><input id="entryDate" type="date">
 <div id="repairFields" class="hidden">
-<label>Repair status</label><select id="repairStatus"><option value="open">Open</option><option value="waiting_parts">Waiting on Parts</option><option value="in_progress">In Progress</option><option value="completed">Completed</option></select>
-<label>Vendor / shop</label><input id="repairVendor" placeholder="Optional">
-<label>Mark equipment out of service?</label><select id="repairDowntime"><option value="no">No</option><option value="yes">Yes</option></select>
+<label for="repairStatus">Repair status</label><select id="repairStatus"><option value="open">Open</option><option value="waiting_parts">Waiting on Parts</option><option value="in_progress">In Progress</option><option value="completed">Completed</option></select>
+<label for="repairVendor">Vendor / shop</label><input id="repairVendor" placeholder="Optional">
+<label for="repairDowntime">Mark equipment out of service?</label><select id="repairDowntime"><option value="no">No</option><option value="yes">Yes</option></select>
 </div>
-<label>Notes</label><textarea id="entryNotes" placeholder="Optional notes"></textarea>
+<label for="entryNotes">Notes</label><textarea id="entryNotes" placeholder="Optional notes"></textarea>
 <br><button class="btn wide" onclick="saveEntry()">Save Entry</button>
 </div></div>
 
 <div id="serviceModal" class="modal"><div class="modalBox">
-<button class="close" onclick="closeModal('serviceModal')">✕</button><h2>Add Maintenance Schedule</h2>
-<label>Service</label><input id="serviceTitle" placeholder="Oil Change">
-<label>Schedule by</label><select id="serviceKind" onchange="syncServiceFields()"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="date">Date</option></select>
-<div id="serviceIntervalWrap"><label>Repeat every</label><input id="serviceInterval" type="number" inputmode="decimal" placeholder="100"><label>Next due at</label><input id="serviceNext" type="number" inputmode="decimal"></div>
-<div id="serviceDateWrap" class="hidden"><label>Repeat every (days)</label><input id="serviceDays" type="number" value="365"><label>Next due date</label><input id="serviceDate" type="date"></div>
+<button class="close" aria-label="Close dialog" onclick="closeModal('serviceModal')">✕</button><h2>Add Maintenance Schedule</h2>
+<label for="serviceTitle">Service</label><input id="serviceTitle" placeholder="Oil Change">
+<label for="serviceKind">Schedule by</label><select id="serviceKind" onchange="syncServiceFields()"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="date">Date</option></select>
+<div id="serviceIntervalWrap"><label for="serviceInterval">Repeat every</label><input id="serviceInterval" type="number" inputmode="decimal" placeholder="100"><label for="serviceNext">Next due at</label><input id="serviceNext" type="number" inputmode="decimal"></div>
+<div id="serviceDateWrap" class="hidden"><label for="serviceDays">Repeat every (days)</label><input id="serviceDays" type="number" value="365"><label for="serviceDate">Next due date</label><input id="serviceDate" type="date"></div>
 <br><button class="btn wide" onclick="saveService()">Save Schedule</button>
 </div></div>
 
 <div id="vinChoiceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vinChoiceTitle"><div class="modalBox">
-<button class="close" onclick="closeModal('vinChoiceModal')" aria-label="Close VIN options">✕</button>
+<button class="close" aria-label="Close VIN options" onclick="closeModal('vinChoiceModal')">✕</button>
 <h2 id="vinChoiceTitle">Add or find a vehicle</h2>
 <p class="sub">How would you like to enter the VIN?</p>
 <button class="btn wide" onclick="chooseVinScan()">Scan VIN</button><br><br>
 <button class="btn secondary wide" onclick="chooseVinManual()">Enter Manually</button>
 </div></div>
 <div id="vinScannerModal" class="modal"><div class="modalBox">
-<button class="close" onclick="stopVinScan()">✕</button><h2>Scan VIN</h2>
+<button class="close" aria-label="Close dialog" onclick="stopVinScan()">✕</button><h2>Scan VIN</h2>
 <p class="sub">Point the camera at the VIN barcode on the vehicle. Equipment Cost Book will open the existing vehicle or fill a new equipment record.</p>
 <video id="vinVideo" playsinline muted style="width:100%;border-radius:14px;background:#000;min-height:220px"></video>
 <div id="vinScanStatus" class="tiny" style="margin-top:10px">Starting camera…</div>
@@ -420,7 +441,18 @@ async function reloadCloud(){
  render();renderReports();syncProfile();renderTeam();renderActivity();
 }
 function assetMeter(a){if(a.current_mileage!=null)return Number(a.current_mileage).toLocaleString()+" mi";if(a.current_hours!=null)return Number(a.current_hours).toLocaleString()+" hrs";return a.asset_type||"Equipment"}
-function icon(t){return t==="Truck"?"🚚":t==="Trailer"?"🛻":t==="Mower"?"🌱":t==="Generator"?"⚡":t==="Compressor"?"💨":"🔧"}
+function icon(t){
+ const paths={
+ Truck:'<path d="M3 6h11v11H3Z M14 10h4l3 4v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>',
+ Trailer:'<path d="M3 6h15v11H3Z M18 15h3"/><circle cx="7" cy="18" r="2"/><circle cx="14" cy="18" r="2"/>',
+ Mower:'<path d="M5 16h13l-2-6H9 M14 10l4-7h3 M3 16h2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+ Generator:'<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M8 5V3h8v2 M13 8l-4 5h6l-3 4"/>',
+ Compressor:'<rect x="3" y="11" width="18" height="7" rx="3"/><path d="M8 11V6h8v5 M6 18v3 M18 18v3"/>',
+ Other:'<path d="m14 5-3 3 5 5 3-3a6 6 0 0 1-7 7l-6 5-4-4 6-6a6 6 0 0 1 6-7Z"/>'
+ };
+ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[t]||paths.Other}</svg>`;
+}
+
 function assetCosts(id){return {m:maintenance.filter(x=>x.asset_id===id).reduce((n,x)=>n+Number(x.cost||0),0),r:repairs.filter(x=>x.asset_id===id).reduce((n,x)=>n+Number(x.cost||0),0),e:expenses.filter(x=>x.asset_id===id).reduce((n,x)=>n+Number(x.amount||0),0)}}
 
 function statusText(s){return s==="good"?"Good":s==="attention"?"Needs Attention":"Out of Service"}
@@ -528,7 +560,7 @@ function render(){
  workspaceLabel.textContent=workspace?workspace.name:"";
  let h=new Date().getHours();homeGreeting.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
 }
-function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));if(id==="reports")renderReports();scrollTo({top:0,behavior:"smooth"})}
+function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));if(id==="reports")renderReports();scrollTo({top:0,behavior:"auto"})}
 
 function normalizeVin(v){
  return String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/[IOQ]/g,"");
