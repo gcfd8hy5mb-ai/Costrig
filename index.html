@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" href="./icon-192.png" type="image/png">
-<title>Equipment Cost Book V4.9.2</title>
+<title>Equipment Cost Book V4.9.3</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -171,7 +171,7 @@ body:has(.modal.open){overflow:hidden}
 <div id="activityList"></div>
 
 <button class="btn secondary wide" onclick="refreshCloud()">Refresh Cloud Data</button><br><br>
-<button class="btn danger wide" onclick="signOut()">Sign Out</button><p class="versionNote">Equipment Cost Book · V4.9.2</p>
+<button class="btn danger wide" onclick="signOut()">Sign Out</button><p class="versionNote">Equipment Cost Book · V4.9.3</p>
 </section>
 </div>
 
@@ -194,9 +194,9 @@ body:has(.modal.open){overflow:hidden}
 <div class="metricGrid"><div><label for="eqSerial">Serial #</label><input id="eqSerial" placeholder="Optional"></div><div><label for="eqVin">VIN</label><input id="eqVin" maxlength="17" autocapitalize="characters" placeholder="17-character VIN"></div></div>
 <div class="metricGrid" style="margin-top:10px"><button id="scanVinBtn" type="button" class="btn secondary" onclick="startVinScan()">Scan VIN</button><button type="button" class="btn secondary" onclick="lookupVin()">Look Up VIN</button></div>
 <div id="vinLookupStatus" class="tiny" style="margin-top:8px"></div>
-<label for="eqTracking">Tracking</label><select id="eqTracking"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="none">No meter</option></select>
-<label for="eqMeter">Current hours/mileage</label><input id="eqMeter" type="number" inputmode="decimal" value="0">
-<div class="metricGrid"><div><label for="eqPrice">Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" placeholder="0"></div><div><label for="eqPurchaseDate">Purchase date</label><input id="eqPurchaseDate" type="date"></div></div>
+<label for="eqTracking">Tracking</label><select id="eqTracking" onchange="syncMeterFields()"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="none">No meter</option></select>
+<div id="eqMeterWrap"><label id="eqMeterLabel" for="eqMeter">Current mileage</label><input id="eqMeter" type="number" inputmode="decimal" min="0" step="any" value="0"></div>
+<div class="metricGrid"><div><label for="eqPrice">Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div><div><label for="eqPurchaseDate">Purchase date</label><input id="eqPurchaseDate" type="date"></div></div>
 <label for="eqStatus">Status</label><select id="eqStatus"><option value="good">Good</option><option value="attention">Needs Attention</option><option value="down">Out of Service</option></select>
 <label for="eqNotes">Notes</label><textarea id="eqNotes" placeholder="Ownership, warranty, location, attachments, or anything useful"></textarea>
 <div id="equipmentFormMessage" class="formMessage tiny" role="alert"></div>
@@ -207,7 +207,7 @@ body:has(.modal.open){overflow:hidden}
 <button class="close" aria-label="Close dialog" onclick="closeModal('entryModal')">✕</button><h2 id="entryModalTitle">Add Cost</h2>
 <label for="entryEquipment">Equipment</label><select id="entryEquipment"></select>
 <label for="entryType">Type</label><select id="entryType" onchange="repairFields.classList.toggle('hidden',this.value!=='repair')"><option value="maintenance">Maintenance</option><option value="repair">Repair</option><option value="expense">Other Expense</option></select>
-<label for="entryCost">Cost</label><input id="entryCost" type="number" inputmode="decimal" placeholder="0.00">
+<label for="entryCost">Cost</label><input id="entryCost" type="number" inputmode="decimal" min="0" step="any" placeholder="0.00">
 <label for="entryDescription">Description</label><input id="entryDescription" placeholder="Oil + filter">
 <label for="entryDate">Date</label><input id="entryDate" type="date">
 <div id="repairFields" class="hidden">
@@ -224,8 +224,8 @@ body:has(.modal.open){overflow:hidden}
 <button class="close" aria-label="Close dialog" onclick="closeModal('serviceModal')">✕</button><h2 id="serviceModalTitle">Add Maintenance Schedule</h2>
 <label for="serviceTitle">Service</label><input id="serviceTitle" placeholder="Oil Change">
 <label for="serviceKind">Schedule by</label><select id="serviceKind" onchange="syncServiceFields()"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="date">Date</option></select>
-<div id="serviceIntervalWrap"><label for="serviceInterval">Repeat every</label><input id="serviceInterval" type="number" inputmode="decimal" placeholder="100"><label for="serviceNext">Next due at</label><input id="serviceNext" type="number" inputmode="decimal"></div>
-<div id="serviceDateWrap" class="hidden"><p class="tiny">Date reminders are available in Profile after you enable notifications.</p><label for="serviceDays">Repeat every (days)</label><input id="serviceDays" type="number" value="365"><label for="serviceDate">Next due date</label><input id="serviceDate" type="date"></div>
+<div id="serviceIntervalWrap"><label for="serviceInterval">Repeat every</label><input id="serviceInterval" type="number" inputmode="decimal" min="0" step="any" placeholder="100"><label for="serviceNext">Next due at</label><input id="serviceNext" type="number" inputmode="decimal" min="0" step="any"></div>
+<div id="serviceDateWrap" class="hidden"><p class="tiny">Date reminders are available in Profile after you enable notifications.</p><label for="serviceDays">Repeat every (days)</label><input id="serviceDays" type="number" min="0" step="1" value="365"><p class="tiny">Leave blank for a one-time service.</p><label for="serviceDate">Next due date</label><input id="serviceDate" type="date"></div>
 <div id="serviceFormMessage" class="formMessage tiny" role="alert"></div>
 <br><button class="btn wide" onclick="saveOnce(this,saveService)">Save Schedule</button>
 </div></div>
@@ -348,7 +348,14 @@ const serviceDays=document.getElementById("serviceDays");
 const serviceDate=document.getElementById("serviceDate");
 
 function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n||0))}
-function today(){let d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
+function localDate(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
+function today(){return localDate(new Date())}
+function calendarDay(dateText){let [year,month,day]=dateText.split("-").map(Number);return Date.UTC(year,month-1,day)/86400000}
+function syncMeterFields(){
+ const kind=eqTracking.value;
+ document.getElementById("eqMeterWrap").classList.toggle("hidden",kind==="none");
+ document.getElementById("eqMeterLabel").textContent=kind==="hours"?"Current engine hours":"Current mileage";
+}
 function formMessage(kind,message,field){
  const target=document.getElementById(kind+"FormMessage");
  target.textContent=message||"";
@@ -528,7 +535,7 @@ function statusText(s){return s==="good"?"Good":s==="attention"?"Needs Attention
 function scheduleState(s){
  const a=assets.find(x=>x.id===s.asset_id); if(!a)return {state:"ok",label:"Scheduled"};
  const now=new Date(); now.setHours(0,0,0,0);
- if(s.next_due_date){let d=new Date(s.next_due_date+"T00:00:00");let days=Math.ceil((d-now)/86400000);if(days<0)return {state:"overdue",label:`Overdue by ${Math.abs(days)}d`};if(days<=14)return {state:"soon",label:`Due in ${days}d`};return {state:"ok",label:`Due ${s.next_due_date}`}}
+ if(s.next_due_date){let days=calendarDay(s.next_due_date)-calendarDay(localDate(now));if(days<0)return {state:"overdue",label:`Overdue by ${Math.abs(days)}d`};if(days<=14)return {state:"soon",label:days===0?"Due today":`Due in ${days}d`};return {state:"ok",label:`Due ${s.next_due_date}`}}
  if(s.next_due_mileage!=null&&a.current_mileage!=null){let left=Number(s.next_due_mileage)-Number(a.current_mileage);if(left<0)return {state:"overdue",label:`Overdue by ${Math.abs(left).toLocaleString()} mi`};if(left<=500)return {state:"soon",label:`Due in ${left.toLocaleString()} mi`};return {state:"ok",label:`Due @ ${Number(s.next_due_mileage).toLocaleString()} mi`}}
  if(s.next_due_hours!=null&&a.current_hours!=null){let left=Number(s.next_due_hours)-Number(a.current_hours);if(left<0)return {state:"overdue",label:`Overdue by ${Math.abs(left).toLocaleString()} hrs`};if(left<=25)return {state:"soon",label:`Due in ${left.toLocaleString()} hrs`};return {state:"ok",label:`Due @ ${Number(s.next_due_hours).toLocaleString()} hrs`}}
  return {state:"ok",label:"Schedule active"}
@@ -806,11 +813,15 @@ function stopVinScan(){
  vinScanBusy=false;
 }
 
-function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";eqType.value="Truck";eqTracking.value="miles";eqVehicleType.value="";eqBodyClass.value="";eqEngineDescription.value="";vinLookupStatus.textContent="";vinLookupStatus.className="tiny";formMessage("equipment","");equipmentModal.classList.add("open")}
+function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";eqType.value="Truck";eqTracking.value="miles";syncMeterFields();eqVehicleType.value="";eqBodyClass.value="";eqEngineDescription.value="";vinLookupStatus.textContent="";vinLookupStatus.className="tiny";formMessage("equipment","");equipmentModal.classList.add("open")}
 function closeModal(id){document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
  if(!canEdit())return alert("Your role is view-only.");
  let name=eqName.value.trim();if(!name)return formMessage("equipment","Enter an equipment name.",eqName);
+ if(eqTracking.value!=="none"&&(eqMeter.value===""||!Number.isFinite(Number(eqMeter.value))||Number(eqMeter.value)<0))
+   return formMessage("equipment","Enter a valid current meter reading.",eqMeter);
+ if(eqPrice.value!==""&&(!Number.isFinite(Number(eqPrice.value))||Number(eqPrice.value)<0))
+   return formMessage("equipment","Enter a purchase price of 0 or more.",eqPrice);
  formMessage("equipment","");
  let tracking=eqTracking.value,meter=Number(eqMeter.value||0),body={
    workspace_id:workspace.id,name,asset_type:eqType.value,status:eqStatus.value,
@@ -827,7 +838,7 @@ async function saveEquipment(){
    closeModal("equipmentModal");let id=editingId;await reloadCloud();if(id)openDetail(id);else show("equipment");
  }catch(e){if(equipmentModal.classList.contains("open"))formMessage("equipment","Could not save equipment: "+e.message)}
 }
-function editEquipment(id){if(!canEdit())return alert("Your role is view-only.");let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqVehicleType.value=a.vehicle_type||"";eqBodyClass.value=a.body_class||"";eqEngineDescription.value=a.engine_description||"";vinLookupStatus.textContent="";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}formMessage("equipment","");equipmentModal.classList.add("open")}
+function editEquipment(id){if(!canEdit())return alert("Your role is view-only.");let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqVehicleType.value=a.vehicle_type||"";eqBodyClass.value=a.body_class||"";eqEngineDescription.value=a.engine_description||"";vinLookupStatus.textContent="";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}syncMeterFields();formMessage("equipment","");equipmentModal.classList.add("open")}
 async function deleteEquipment(id){if(!canManageTeam())return alert("Only owners and managers can delete equipment.");if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
 function openVinFromNav(){
  if(!canEdit())return alert("Your role is view-only.");
@@ -918,10 +929,14 @@ async function saveService(){
  let kind=serviceKind.value,body={workspace_id:workspace.id,asset_id:currentId,title,active:true};
  if(kind==="date"){
    if(!serviceDate.value)return formMessage("service","Choose the next due date.",serviceDate);
+   if(serviceDays.value!==""&&(!Number.isInteger(Number(serviceDays.value))||Number(serviceDays.value)<0))
+     return formMessage("service","Repeat days must be a whole number of 0 or more.",serviceDays);
    body.interval_days=Number(serviceDays.value||0)||null;body.next_due_date=serviceDate.value;
  }else{
    if(serviceNext.value===""||!Number.isFinite(Number(serviceNext.value))||Number(serviceNext.value)<0)
      return formMessage("service","Enter the next due meter reading.",serviceNext);
+   if(serviceInterval.value!==""&&(!Number.isFinite(Number(serviceInterval.value))||Number(serviceInterval.value)<0))
+     return formMessage("service","Repeat interval must be 0 or more.",serviceInterval);
    const interval=Number(serviceInterval.value||0)||null,next=Number(serviceNext.value);
    if(kind==="miles"){body.interval_miles=interval;body.next_due_mileage=next}
    else{body.interval_hours=interval;body.next_due_hours=next}
@@ -943,20 +958,28 @@ async function completeService(scheduleId){
  let costRaw=prompt(`Cost for ${s.title} (enter 0 if none)`,"0");if(costRaw===null)return;
  let notes=prompt("Notes (optional)","")||"";
  let cost=Number(costRaw||0),date=today();
+ if(!Number.isFinite(cost)||cost<0)return alert("Enter a valid cost of 0 or more.");
  let rec={workspace_id:workspace.id,asset_id:a.id,schedule_id:s.id,service_date:date,cost,notes:s.title+(notes?" — "+notes:""),created_by:userId()};
  if(a.current_mileage!=null)rec.mileage=Number(a.current_mileage);
  if(a.current_hours!=null)rec.engine_hours=Number(a.current_hours);
+ let recorded=false,updated=false;
  try{
    await sb("/rest/v1/maintenance_records",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(rec)});
+   recorded=true;
    let patch={last_service_date:date};
    if(a.current_mileage!=null)patch.last_service_mileage=Number(a.current_mileage);
    if(a.current_hours!=null)patch.last_service_hours=Number(a.current_hours);
-   if(s.interval_days){let d=new Date(date+"T00:00:00");d.setDate(d.getDate()+Number(s.interval_days));patch.next_due_date=d.toISOString().slice(0,10)}
+   if(s.interval_days){let d=new Date(date+"T00:00:00");d.setDate(d.getDate()+Number(s.interval_days));patch.next_due_date=localDate(d)}
    if(s.interval_miles&&a.current_mileage!=null)patch.next_due_mileage=Number(a.current_mileage)+Number(s.interval_miles);
    if(s.interval_hours&&a.current_hours!=null)patch.next_due_hours=Number(a.current_hours)+Number(s.interval_hours);
+   if(!s.interval_days&&!s.interval_miles&&!s.interval_hours)patch.active=false;
    await sb("/rest/v1/maintenance_schedules?id=eq."+s.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
+   updated=true;
    await reloadCloud();openDetail(a.id);
- }catch(e){alert(e.message)}
+ }catch(e){
+   if(recorded)setCloudStatus(updated?"Service and schedule saved, but cloud refresh failed. Refresh to see the latest data.":"Service was recorded, but the schedule did not update. Refresh and review it before completing again.",true);
+   else alert(e.message);
+ }
 }
 
 function repairStatusText(s){
