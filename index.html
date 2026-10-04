@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>Equipment Cost Book V4.4.1</title>
+<title>Equipment Cost Book V4.5.0</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -40,6 +40,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
     <div class="card">
       <label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
       <label>Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+<label>Invite code <span class="muted">(optional)</span></label><input id="authInviteCode" placeholder="Paste a team invite code">
       <div id="signupFields" class="hidden">
         <label>Your name</label><input id="authName" placeholder="Your name">
         <label>Business name</label><input id="authBusiness" placeholder="My Business">
@@ -53,7 +54,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.4.1</button></header>
+<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.5.0</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -89,8 +90,27 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 <div class="row"><div><h1>Profile & Cloud</h1><p class="sub">Account and workspace.</p></div><button class="miniBtn" onclick="show('home')">Done</button></div>
 <div class="card">
 <div class="row"><div><b id="profileNameText">Equipment Cost Book User</b><div class="muted" id="profileEmailText"></div></div><span class="pill">CLOUD</span></div>
-<div class="divider"></div><div class="row"><span>Workspace</span><b id="profileWorkspaceText">—</b></div><div class="row"><span>Plan</span><b id="profilePlanText">FREE</b></div>
+<div class="divider"></div><div class="row"><span>Workspace</span><b id="profileWorkspaceText">—</b></div><div class="row"><span>Your role</span><b id="profileRoleText">—</b></div><div class="row"><span>Plan</span><b id="profilePlanText">FREE</b></div>
 </div>
+
+<h2>Company</h2>
+<div class="card">
+<label>Company / workspace name</label><input id="workspaceNameInput" placeholder="My Business">
+<button class="btn wide" style="margin-top:12px" onclick="saveWorkspaceName()">Save Company Name</button>
+</div>
+
+<h2>Team</h2>
+<div id="teamAdminPanel" class="card">
+<label>Invite employee by email</label><input id="inviteEmail" type="email" placeholder="employee@example.com">
+<label>Role</label><select id="inviteRole"><option value="technician">Technician</option><option value="manager">Manager</option><option value="viewer">Viewer</option></select>
+<button class="btn wide" style="margin-top:12px" onclick="createTeamInvite()">Create Invite</button>
+<div id="inviteResult" class="tiny" style="margin-top:10px"></div>
+</div>
+<div id="teamList"></div>
+
+<h2>Activity</h2>
+<div id="activityList"></div>
+
 <button class="btn secondary wide" onclick="reloadCloud()">Refresh Cloud Data</button><br><br>
 <button class="btn danger wide" onclick="signOut()">Sign Out</button>
 </section>
@@ -147,13 +167,15 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 const SB_URL="https://kxeffspwruntfuofquhe.supabase.co";
 const SB_KEY="sb_publishable_5vT56JWcDDwFIeB2ls9bJA_5FemOr2O";
 let authMode="signin", session=null, workspace=null, profile=null, entitlement=null;
-let assets=[], maintenance=[], repairs=[], expenses=[], schedules=[], downtime=[];
+let assets=[], maintenance=[], repairs=[], expenses=[], schedules=[], downtime=[], teamMembers=[], activityItems=[];
+let currentRole="viewer";
 let currentId=null, editingId=null;
 
 // Explicit DOM references. Do not rely on browser-generated globals from element IDs.
 const authScreen=document.getElementById("authScreen");
 const authEmail=document.getElementById("authEmail");
 const authPassword=document.getElementById("authPassword");
+const authInviteCode=document.getElementById("authInviteCode");
 const authName=document.getElementById("authName");
 const authBusiness=document.getElementById("authBusiness");
 const authMessage=document.getElementById("authMessage");
@@ -184,6 +206,14 @@ const profileNameText=document.getElementById("profileNameText");
 const profileEmailText=document.getElementById("profileEmailText");
 const profileWorkspaceText=document.getElementById("profileWorkspaceText");
 const profilePlanText=document.getElementById("profilePlanText");
+const profileRoleText=document.getElementById("profileRoleText");
+const workspaceNameInput=document.getElementById("workspaceNameInput");
+const teamAdminPanel=document.getElementById("teamAdminPanel");
+const inviteEmail=document.getElementById("inviteEmail");
+const inviteRole=document.getElementById("inviteRole");
+const inviteResult=document.getElementById("inviteResult");
+const teamList=document.getElementById("teamList");
+const activityList=document.getElementById("activityList");
 
 const equipmentModal=document.getElementById("equipmentModal");
 const equipmentModalTitle=document.getElementById("equipmentModalTitle");
@@ -257,6 +287,16 @@ async function submitAuth(){
    }
    msg.textContent="Signed in. Loading your workspace…";
    msg.classList.add("authOk");
+   if(authInviteCode.value.trim()){
+     try{
+       await sb("/rest/v1/rpc/accept_workspace_invite",{method:"POST",body:JSON.stringify({invite_token:authInviteCode.value.trim()})});
+       localStorage.removeItem("ecb_pending_invite");
+     }catch(invErr){
+       msg.textContent="Signed in, but invite failed: "+invErr.message;
+       msg.classList.add("authError");
+       return;
+     }
+   }
    const ok=await enterAppSafe();
    if(!ok){
      msg.textContent="Signed in, but Equipment Cost Book could not load your workspace. Tap Sign In again or Refresh Cloud Data.";
@@ -317,8 +357,8 @@ async function reloadCloud(){
    ms=await sb("/rest/v1/workspace_members?select=workspace_id,role,workspaces(id,name)&user_id=eq."+uid+"&limit=1");
  }
  if(!ms.data?.length||!ms.data[0].workspaces)throw new Error("No workspace was found for this account.");
- workspace=ms.data[0].workspaces;
- let [p,en,a,m,r,e,s,d]=await Promise.all([
+ workspace=ms.data[0].workspaces; currentRole=ms.data[0].role||"viewer";
+ let [p,en,a,m,r,e,s,d,tm,act]=await Promise.all([
    sb("/rest/v1/profiles?select=*&id=eq."+uid+"&limit=1"),
    sb("/rest/v1/entitlements?select=*&user_id=eq."+uid+"&limit=1"),
    sb("/rest/v1/assets?select=*&workspace_id=eq."+workspace.id+"&order=created_at.asc"),
@@ -326,10 +366,12 @@ async function reloadCloud(){
    sb("/rest/v1/repairs?select=*&workspace_id=eq."+workspace.id+"&order=opened_at.desc"),
    sb("/rest/v1/expenses?select=*&workspace_id=eq."+workspace.id+"&order=expense_date.desc"),
    sb("/rest/v1/maintenance_schedules?select=*&workspace_id=eq."+workspace.id+"&active=eq.true"),
-   sb("/rest/v1/downtime_events?select=*&workspace_id=eq."+workspace.id+"&order=started_at.desc")
+   sb("/rest/v1/downtime_events?select=*&workspace_id=eq."+workspace.id+"&order=started_at.desc"),
+   sb("/rest/v1/rpc/get_workspace_team",{method:"POST",body:JSON.stringify({target_workspace:workspace.id})}),
+   sb("/rest/v1/activity_log?select=*&workspace_id=eq."+workspace.id+"&order=created_at.desc&limit=20")
  ]);
- profile=p.data?.[0]||null;entitlement=en.data?.[0]||{plan:"free"};assets=a.data||[];maintenance=m.data||[];repairs=r.data||[];expenses=e.data||[];schedules=s.data||[];downtime=d.data||[];
- render();renderReports();syncProfile();
+ profile=p.data?.[0]||null;entitlement=en.data?.[0]||{plan:"free"};assets=a.data||[];maintenance=m.data||[];repairs=r.data||[];expenses=e.data||[];schedules=s.data||[];downtime=d.data||[];teamMembers=tm.data||[];activityItems=act.data||[];
+ render();renderReports();syncProfile();renderTeam();renderActivity();
 }
 function assetMeter(a){if(a.current_mileage!=null)return Number(a.current_mileage).toLocaleString()+" mi";if(a.current_hours!=null)return Number(a.current_hours).toLocaleString()+" hrs";return a.asset_type||"Equipment"}
 function icon(t){return t==="Truck"?"🚚":t==="Trailer"?"🛻":t==="Mower"?"🌱":t==="Generator"?"⚡":t==="Compressor"?"💨":"🔧"}
@@ -437,7 +479,7 @@ function render(){
  let h=new Date().getHours();homeGreeting.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
 }
 function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));if(id==="reports")renderReports();scrollTo({top:0,behavior:"smooth"})}
-function openEquipment(){editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";equipmentModal.classList.add("open")}
+function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";equipmentModal.classList.add("open")}
 function closeModal(id){document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
  let name=eqName.value.trim();if(!name)return alert("Enter an equipment name.");
@@ -458,7 +500,7 @@ async function saveEquipment(){
 }
 function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
 async function deleteEquipment(id){if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
-function quickAdd(){
+function quickAdd(){if(!canEdit())return alert("Your role is view-only.");
  const detailOpen=document.getElementById("detail")?.classList.contains("active");
  if(detailOpen && currentId){
    openEntry("maintenance",currentId);
@@ -567,7 +609,57 @@ function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)retur
  show("detail");
 }
 function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,openRepairCount=repairs.filter(r=>r.status!=="completed").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Open repairs</span><b>${openRepairCount}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||'<div class="empty">Record costs to unlock reports.</div>'}`}
-function syncProfile(){profileNameText.textContent=profile?.display_name||"Equipment Cost Book User";profileEmailText.textContent=authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase()}
+
+function roleLabel(r){return r==="owner"?"Owner":r==="manager"?"Manager":r==="technician"?"Technician":"Viewer"}
+function canManageTeam(){return currentRole==="owner"||currentRole==="manager"}
+function canEdit(){return currentRole==="owner"||currentRole==="manager"||currentRole==="technician"}
+
+function renderTeam(){
+ teamAdminPanel.classList.toggle("hidden",!canManageTeam());
+ teamList.innerHTML=teamMembers.map(m=>{
+   const controls=currentRole==="owner"&&m.role!=="owner" ? `<div class="row" style="margin-top:10px"><select onchange="changeMemberRole('${m.user_id}',this.value)"><option value="manager" ${m.role==="manager"?"selected":""}>Manager</option><option value="technician" ${m.role==="technician"?"selected":""}>Technician</option><option value="viewer" ${m.role==="viewer"?"selected":""}>Viewer</option></select><button class="miniBtn" onclick="removeMember('${m.user_id}')">Remove</button></div>` : "";
+   return `<div class="card"><div class="row"><div><b>${esc(m.display_name||m.email||"Team member")}</b><div class="tiny">${esc(m.email||"")}</div></div><span class="pill">${roleLabel(m.role)}</span></div>${controls}</div>`
+ }).join("")||'<div class="empty">No team members yet.</div>';
+}
+
+function renderActivity(){
+ activityList.innerHTML=activityItems.map(x=>{
+   const actor=teamMembers.find(m=>m.user_id===x.actor_user_id);
+   const when=new Date(x.created_at).toLocaleString();
+   return `<div class="card"><div class="row"><div><b>${esc((x.action||"activity").replaceAll("_"," "))}</b><div class="tiny">${esc(x.entity_type||"")} · ${esc(actor?.display_name||actor?.email||"System")}</div></div><span class="tiny">${esc(when)}</span></div></div>`
+ }).join("")||'<div class="empty">No recent activity.</div>';
+}
+
+async function createTeamInvite(){
+ const email=inviteEmail.value.trim();
+ if(!email)return alert("Enter an email address.");
+ try{
+   const r=await sb("/rest/v1/rpc/create_workspace_invite",{method:"POST",body:JSON.stringify({target_workspace:workspace.id,target_email:email,target_role:inviteRole.value})});
+   const token=typeof r.data==="string"?r.data:(Array.isArray(r.data)?r.data[0]:r.data);
+   inviteResult.innerHTML=`Invite created. Share this code with ${esc(email)}:<br><b style="font-size:13px;word-break:break-all">${esc(String(token))}</b>`;
+   inviteEmail.value="";
+ }catch(e){alert(e.message)}
+}
+
+async function changeMemberRole(uid,role){
+ try{await sb("/rest/v1/rpc/set_workspace_member_role",{method:"POST",body:JSON.stringify({target_workspace:workspace.id,target_user:uid,target_role:role})});await reloadCloud()}catch(e){alert(e.message)}
+}
+
+async function removeMember(uid){
+ if(!confirm("Remove this person from the workspace?"))return;
+ try{await sb("/rest/v1/rpc/remove_workspace_member",{method:"POST",body:JSON.stringify({target_workspace:workspace.id,target_user:uid})});await reloadCloud()}catch(e){alert(e.message)}
+}
+
+async function saveWorkspaceName(){
+ if(!(currentRole==="owner"||currentRole==="manager"))return alert("Only owners and managers can change the company name.");
+ const name=workspaceNameInput.value.trim(); if(!name)return alert("Enter a company name.");
+ try{
+   await sb("/rest/v1/workspaces?id=eq."+workspace.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({name,updated_at:new Date().toISOString()})});
+   workspace.name=name;render();syncProfile();
+ }catch(e){alert(e.message)}
+}
+
+function syncProfile(){profileNameText.textContent=profile?.display_name||"Equipment Cost Book User";profileEmailText.textContent=authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profileRoleText.textContent=roleLabel(currentRole);profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase();workspaceNameInput.value=workspace?.name||""}
 
 
 window.addEventListener("error",(e)=>{
