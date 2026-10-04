@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig V4.1</title>
+<title>CostRig V4.1.2</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -23,7 +23,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:30;padding:20px;overflow:auto;backdrop-filter:blur(6px)}.modal.open{display:block}.modalBox{max-width:500px;margin:24px auto 60px;background:#10161c;border:1px solid var(--line);border-radius:20px;padding:18px}.close{float:right;background:#242c34;color:white;border:0;border-radius:10px;padding:7px 10px}
 .auth{position:fixed;inset:0;z-index:60;background:var(--bg);padding:calc(28px + env(safe-area-inset-top)) 20px;overflow:auto}.auth.hidden{display:none}.authInner{max-width:460px;margin:auto}.authHero{padding:50px 0 20px}.authHero h1{font-size:38px;line-height:1.05}.seg{display:grid;grid-template-columns:1fr 1fr;background:#151c22;border:1px solid var(--line);border-radius:13px;padding:4px;gap:4px}.seg button{border:0;border-radius:10px;padding:10px;background:transparent;color:var(--muted);font-weight:800}.seg button.active{background:var(--orange);color:#080808}
 .empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed #2b3741;border-radius:15px}.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#171e25;border:1px solid var(--line);border-radius:13px;padding:12px}.metric b{display:block;font-size:19px;margin-top:4px}.pill{font-size:11px;padding:5px 8px;border-radius:999px;background:#25303a}
-.notice{padding:12px;border:1px solid #4c3826;background:#17130f;border-radius:13px;color:#e8d5c2;margin:10px 0}.success{border-color:#1c5c3c;background:#10291f}.dueSoon{border-color:#5a471c;background:#211b0d}.overdue{border-color:#6b2522;background:#271211}.dueLabel{font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}.hidden{display:none!important}
+.notice{padding:12px;border:1px solid #4c3826;background:#17130f;border-radius:13px;color:#e8d5c2;margin:10px 0}.success{border-color:#1c5c3c;background:#10291f}.authError{color:#ff7c72}.authOk{color:#65d89c}.dueSoon{border-color:#5a471c;background:#211b0d}.overdue{border-color:#6b2522;background:#271211}.dueLabel{font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}.hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -52,7 +52,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1</button></header>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1.2</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -148,15 +148,42 @@ function authHeaders(json=true){let h={apikey:SB_KEY};if(session?.access_token)h
 async function sb(path,opts={}){let r=await fetch(SB_URL+path,{...opts,headers:{...authHeaders(!(opts.body instanceof FormData)),...(opts.headers||{})}});let txt=await r.text();let data=txt?(()=>{try{return JSON.parse(txt)}catch{return txt}})():null;if(!r.ok)throw new Error(data?.message||data?.error_description||data?.hint||data?.details||String(data||r.status));return {data,headers:r.headers,status:r.status}}
 function saveSession(){if(session)localStorage.setItem("costrig_session",JSON.stringify(session));else localStorage.removeItem("costrig_session")}
 function setAuthMode(mode){authMode=mode;document.getElementById("signInTab").classList.toggle("active",mode==="signin");document.getElementById("signUpTab").classList.toggle("active",mode==="signup");document.getElementById("signupFields").classList.toggle("hidden",mode!=="signup");document.getElementById("authSubmit").textContent=mode==="signin"?"Sign In":"Create Account";document.getElementById("authMessage").textContent=""}
-async function submitAuth(){let email=authEmail.value.trim(),password=authPassword.value,msg=authMessage;if(!email||password.length<6){msg.textContent="Enter a valid email and a password with at least 6 characters.";return}msg.textContent="Working…";try{
- if(authMode==="signup"){
-   let r=await fetch(SB_URL+"/auth/v1/signup",{method:"POST",headers:authHeaders(),body:JSON.stringify({email,password})});let d=await r.json();if(!r.ok)throw new Error(d.msg||d.error_description||d.message||"Sign up failed");
-   if(!d.access_token){msg.textContent="Account created. Check your email to confirm it, then sign in.";setAuthMode("signin");return}
-   session=d;saveSession();await bootstrapWorkspace(authBusiness.value.trim()||"My Business",authName.value.trim());
- }else{
-   let r=await fetch(SB_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:authHeaders(),body:JSON.stringify({email,password})});let d=await r.json();if(!r.ok)throw new Error(d.error_description||d.message||"Sign in failed");session=d;saveSession();
+async function submitAuth(){
+ let email=authEmail.value.trim(),password=authPassword.value,msg=authMessage;
+ msg.className="tiny"; 
+ if(!email||password.length<6){msg.textContent="Enter a valid email and a password with at least 6 characters.";msg.classList.add("authError");return}
+ msg.textContent="Signing in…";
+ try{
+   if(authMode==="signup"){
+     let r=await fetch(SB_URL+"/auth/v1/signup",{method:"POST",headers:authHeaders(),body:JSON.stringify({email,password})});
+     let d=await r.json();
+     if(!r.ok)throw new Error(d.msg||d.error_description||d.message||"Sign up failed");
+     if(!d.access_token){
+       msg.textContent="Account created. Check your email to confirm it, then return here and sign in.";
+       msg.classList.add("authOk");
+       setAuthMode("signin");
+       authEmail.value=email;
+       return;
+     }
+     session=d; saveSession();
+     await bootstrapWorkspace(authBusiness.value.trim()||"My Business",authName.value.trim());
+   }else{
+     let r=await fetch(SB_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:authHeaders(),body:JSON.stringify({email,password})});
+     let d=await r.json();
+     if(!r.ok)throw new Error(d.error_description||d.message||"Sign in failed");
+     session=d; saveSession();
+   }
+   msg.textContent="Signed in. Loading your workspace…";
+   msg.classList.add("authOk");
+   const ok=await enterAppSafe();
+   if(!ok){
+     msg.textContent="Signed in, but CostRig could not load your workspace. Tap Sign In again or Refresh Cloud Data.";
+     msg.classList.add("authError");
+   }
+ }catch(e){
+   msg.textContent=e.message||"Sign in failed.";
+   msg.classList.add("authError");
  }
- await enterApp();
 }catch(e){msg.textContent=e.message}}
 async function bootstrapWorkspace(name,displayName){
  try{await sb("/rest/v1/rpc/bootstrap_workspace",{method:"POST",body:JSON.stringify({workspace_name:name,display_name:displayName||null})})}
@@ -171,13 +198,43 @@ async function refreshSessionIfNeeded(){
  if(!session?.refresh_token)return false;
  try{let r=await fetch(SB_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:authHeaders(),body:JSON.stringify({refresh_token:session.refresh_token})});let d=await r.json();if(!r.ok)return false;session=d;saveSession();return true}catch{return false}
 }
-async function init(){session=JSON.parse(localStorage.getItem("costrig_session")||"null");if(session){let ok=await refreshSessionIfNeeded();if(ok){await enterApp();return}}document.getElementById("authScreen").classList.remove("hidden")}
-async function enterApp(){document.getElementById("authScreen").classList.add("hidden");try{await reloadCloud()}catch(e){alert("Cloud load failed: "+e.message);document.getElementById("authScreen").classList.remove("hidden")}}
+async function init(){
+ try{session=JSON.parse(localStorage.getItem("costrig_session")||"null")}catch{session=null;saveSession()}
+ if(session){
+   let ok=await refreshSessionIfNeeded();
+   if(ok){
+     let entered=await enterAppSafe();
+     if(entered)return;
+   }else{
+     session=null;saveSession();
+   }
+ }
+ document.getElementById("authScreen").classList.remove("hidden");
+}
+async function enterAppSafe(){
+ document.getElementById("authScreen").classList.add("hidden");
+ try{
+   await reloadCloud();
+   return true;
+ }catch(e){
+   console.error("CostRig cloud load failed",e);
+   document.getElementById("authScreen").classList.remove("hidden");
+   authMessage.textContent="Cloud load failed: "+(e.message||"Unknown error");
+   authMessage.className="tiny authError";
+   return false;
+ }
+}
+async function enterApp(){return await enterAppSafe()}
 async function signOut(){try{await fetch(SB_URL+"/auth/v1/logout",{method:"POST",headers:authHeaders(false)})}catch{}session=null;saveSession();location.reload()}
 async function reloadCloud(){
- let uid=userId();
+ if(!session?.access_token)throw new Error("No active CostRig session.");
+ let uid=userId(); if(!uid)throw new Error("Could not read the signed-in user.");
  let ms=await sb("/rest/v1/workspace_members?select=workspace_id,role,workspaces(id,name)&user_id=eq."+uid+"&limit=1");
- if(!ms.data?.length){await bootstrapWorkspace("My Business","");ms=await sb("/rest/v1/workspace_members?select=workspace_id,role,workspaces(id,name)&user_id=eq."+uid+"&limit=1")}
+ if(!ms.data?.length){
+   await bootstrapWorkspace("My Business","");
+   ms=await sb("/rest/v1/workspace_members?select=workspace_id,role,workspaces(id,name)&user_id=eq."+uid+"&limit=1");
+ }
+ if(!ms.data?.length||!ms.data[0].workspaces)throw new Error("No workspace was found for this account.");
  workspace=ms.data[0].workspaces;
  let [p,en,a,m,r,e,s,d]=await Promise.all([
    sb("/rest/v1/profiles?select=*&id=eq."+uid+"&limit=1"),
@@ -243,7 +300,14 @@ async function saveEquipment(){
 }
 function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
 async function deleteEquipment(id){if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
-function quickAdd(){openEntry("maintenance")}
+function quickAdd(){
+ const detailOpen=document.getElementById("detail")?.classList.contains("active");
+ if(detailOpen && currentId){
+   openEntry("maintenance",currentId);
+ }else{
+   openEntry("maintenance");
+ }
+}
 function openEntry(type,id){entryType.value=type||"maintenance";entryEquipment.innerHTML=assets.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");if(id)entryEquipment.value=id;entryDate.value=today();entryCost.value="";entryDescription.value="";entryNotes.value="";entryModal.classList.add("open")}
 async function saveEntry(){let aid=entryEquipment.value,type=entryType.value,cost=Number(entryCost.value||0),desc=entryDescription.value.trim()||type,date=entryDate.value||today(),notes=entryNotes.value.trim();try{
  if(type==="maintenance")await sb("/rest/v1/maintenance_records",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,service_date:date,cost,notes:desc+(notes?" — "+notes:""),created_by:userId()})});
