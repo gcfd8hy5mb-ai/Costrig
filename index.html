@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig V4.1.2</title>
+<title>CostRig V4.1.3</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -52,7 +52,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1.2</button></header>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1.3</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -184,7 +184,7 @@ async function submitAuth(){
    msg.textContent=e.message||"Sign in failed.";
    msg.classList.add("authError");
  }
-}catch(e){msg.textContent=e.message}}
+}
 async function bootstrapWorkspace(name,displayName){
  try{await sb("/rest/v1/rpc/bootstrap_workspace",{method:"POST",body:JSON.stringify({workspace_name:name,display_name:displayName||null})})}
  catch(e){
@@ -298,7 +298,7 @@ async function saveEquipment(){
    closeModal("equipmentModal");let id=editingId;await reloadCloud();if(id)openDetail(id);else show("equipment");
  }catch(e){alert(e.message)}
 }
-function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
+function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
 async function deleteEquipment(id){if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
 function quickAdd(){
  const detailOpen=document.getElementById("detail")?.classList.contains("active");
