@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>Equipment Cost Book V4.6.0</title>
+<title>Equipment Cost Book V4.7.0</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -25,6 +25,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 .empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed #2b3741;border-radius:15px}.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#343E49;border:1px solid var(--line);border-radius:13px;padding:12px}.metric b{display:block;font-size:19px;margin-top:4px}.pill{font-size:11px;padding:5px 8px;border-radius:999px;background:#25303a}
 .notice{padding:12px;border:1px solid #4c3826;background:#17130f;border-radius:13px;color:#e8d5c2;margin:10px 0}.success{border-color:#1c5c3c;background:#10291f}.authError{color:#ff7c72}.authOk{color:#65d89c}.dueSoon{border-color:#5a471c;background:#211b0d}.overdue{border-color:#6b2522;background:#271211}.dueLabel{font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase}.hidden{display:none!important}
 </style>
+<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
 </head>
 <body>
 
@@ -54,7 +55,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.6.0</button></header>
+<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.7.0</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -143,7 +144,11 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 <label>Type</label><select id="eqType"><option>Mower</option><option>Truck</option><option>Trailer</option><option>Generator</option><option>Compressor</option><option>Tool</option><option>Other</option></select>
 <div class="metricGrid"><div><label>Year</label><input id="eqYear" type="number" inputmode="numeric" placeholder="2024"></div><div><label>Make</label><input id="eqMake" placeholder="Ford"></div></div>
 <label>Model</label><input id="eqModel" placeholder="F-250">
-<div class="metricGrid"><div><label>Serial #</label><input id="eqSerial" placeholder="Optional"></div><div><label>VIN</label><input id="eqVin" placeholder="Optional"></div></div>
+<div class="metricGrid"><div><label>Vehicle type</label><input id="eqVehicleType" placeholder="Truck"></div><div><label>Body class</label><input id="eqBodyClass" placeholder="Pickup"></div></div>
+<label>Engine</label><input id="eqEngineDescription" placeholder="Decoded when available">
+<div class="metricGrid"><div><label>Serial #</label><input id="eqSerial" placeholder="Optional"></div><div><label>VIN</label><input id="eqVin" maxlength="17" autocapitalize="characters" placeholder="17-character VIN"></div></div>
+<div class="metricGrid" style="margin-top:10px"><button id="scanVinBtn" type="button" class="btn secondary" onclick="startVinScan()">Scan VIN</button><button type="button" class="btn secondary" onclick="lookupVin()">Look Up VIN</button></div>
+<div id="vinLookupStatus" class="tiny" style="margin-top:8px"></div>
 <label>Tracking</label><select id="eqTracking"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="none">No meter</option></select>
 <label>Current hours/mileage</label><input id="eqMeter" type="number" inputmode="decimal" value="0">
 <div class="metricGrid"><div><label>Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" placeholder="0"></div><div><label>Purchase date</label><input id="eqPurchaseDate" type="date"></div></div>
@@ -242,6 +247,13 @@ const eqMake=document.getElementById("eqMake");
 const eqModel=document.getElementById("eqModel");
 const eqSerial=document.getElementById("eqSerial");
 const eqVin=document.getElementById("eqVin");
+const eqVehicleType=document.getElementById("eqVehicleType");
+const eqBodyClass=document.getElementById("eqBodyClass");
+const eqEngineDescription=document.getElementById("eqEngineDescription");
+const vinLookupStatus=document.getElementById("vinLookupStatus");
+const vinScannerModal=document.getElementById("vinScannerModal");
+const vinVideo=document.getElementById("vinVideo");
+const vinScanStatus=document.getElementById("vinScanStatus");
 const eqTracking=document.getElementById("eqTracking");
 const eqMeter=document.getElementById("eqMeter");
 const eqPrice=document.getElementById("eqPrice");
@@ -501,6 +513,139 @@ function render(){
  let h=new Date().getHours();homeGreeting.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
 }
 function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===id));if(id==="reports")renderReports();scrollTo({top:0,behavior:"smooth"})}
+
+function normalizeVin(v){
+ return String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/[IOQ]/g,"");
+}
+function isValidVin(v){return normalizeVin(v).length===17}
+async function findAssetByVin(vin){
+ const clean=normalizeVin(vin);
+ if(!clean||!workspace?.id)return null;
+ const r=await sb("/rest/v1/assets?select=*&workspace_id=eq."+workspace.id+"&vin=eq."+encodeURIComponent(clean)+"&limit=1");
+ return r.data?.[0]||null;
+}
+function applyDecodedVin(vin,data){
+ eqVin.value=vin;
+ if(data.ModelYear)eqYear.value=data.ModelYear;
+ if(data.Make)eqMake.value=data.Make;
+ if(data.Model)eqModel.value=data.Model;
+ if(data.VehicleType)eqVehicleType.value=data.VehicleType;
+ if(data.BodyClass)eqBodyClass.value=data.BodyClass;
+ const engine=[data.DisplacementL?data.DisplacementL+"L":"",data.EngineConfiguration||"",data.FuelTypePrimary||""].filter(Boolean).join(" · ");
+ if(engine)eqEngineDescription.value=engine;
+ if(data.VehicleType){
+   const vt=String(data.VehicleType).toLowerCase();
+   if(vt.includes("truck"))eqType.value="Truck";
+   else if(vt.includes("trailer"))eqType.value="Trailer";
+   else eqType.value="Other";
+ }
+}
+async function decodeVin(vin){
+ const clean=normalizeVin(vin);
+ if(!isValidVin(clean))throw new Error("VIN must be 17 characters.");
+ const url="https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValuesExtended/"+encodeURIComponent(clean)+"?format=json";
+ const r=await fetch(url);
+ if(!r.ok)throw new Error("VIN lookup failed.");
+ const d=await r.json();
+ const row=d?.Results?.[0];
+ if(!row)throw new Error("No vehicle data returned.");
+ return row;
+}
+async function handleVin(vin){
+ const clean=normalizeVin(vin);
+ if(!isValidVin(clean))throw new Error("Could not read a complete 17-character VIN.");
+ vinLookupStatus.textContent="Checking your equipment…";
+ const existing=await findAssetByVin(clean);
+ if(existing){
+   closeModal("equipmentModal");
+   stopVinScan();
+   await reloadCloud();
+   openDetail(existing.id);
+   return {existing:true};
+ }
+ vinLookupStatus.textContent="VIN not found in your workspace. Decoding vehicle…";
+ const decoded=await decodeVin(clean);
+ applyDecodedVin(clean,decoded);
+ vinLookupStatus.textContent="Vehicle found. Review the details and tap Save Equipment.";
+ return {existing:false,decoded};
+}
+async function lookupVin(){
+ try{
+   await handleVin(eqVin.value);
+ }catch(e){
+   vinLookupStatus.textContent=e.message;
+   vinLookupStatus.className="tiny authError";
+ }
+}
+let vinStream=null,vinScanTimer=null,vinReader=null,vinScanBusy=false;
+async function startVinScan(){
+ vinScannerModal.classList.add("open");
+ vinScanStatus.textContent="Starting camera…";
+ try{
+   vinStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});
+   vinVideo.srcObject=vinStream;
+   await vinVideo.play();
+   vinScanStatus.textContent="Point camera at VIN barcode…";
+
+   if("BarcodeDetector" in window){
+     const formats=["code_39","code_128","qr_code","data_matrix","pdf417"];
+     const detector=new BarcodeDetector({formats});
+     vinScanTimer=setInterval(async()=>{
+       if(vinScanBusy)return;
+       vinScanBusy=true;
+       try{
+         const codes=await detector.detect(vinVideo);
+         const raw=codes?.[0]?.rawValue;
+         if(raw&&isValidVin(raw)){clearInterval(vinScanTimer);await onVinScanned(raw);}
+       }catch{}
+       vinScanBusy=false;
+     },500);
+   }else if(window.ZXingBrowser?.BrowserMultiFormatReader){
+     vinReader=new ZXingBrowser.BrowserMultiFormatReader();
+     await vinReader.decodeFromVideoDevice(undefined,vinVideo,(result,error,controls)=>{
+       const raw=result?.getText?.();
+       if(raw&&isValidVin(raw)){controls.stop();onVinScanned(raw);}
+     });
+   }else{
+     vinScanStatus.textContent="Live barcode scanning is not supported in this browser. Enter the VIN manually and tap Look Up VIN.";
+   }
+ }catch(e){
+   vinScanStatus.textContent="Camera unavailable: "+e.message;
+ }
+}
+async function onVinScanned(raw){
+ const clean=normalizeVin(raw);
+ vinScanStatus.textContent="VIN found: "+clean;
+ eqVin.value=clean;
+ try{
+   const existing=await findAssetByVin(clean);
+   if(existing){
+     stopVinScan();
+     await reloadCloud();
+     openDetail(existing.id);
+     return;
+   }
+   const decoded=await decodeVin(clean);
+   applyDecodedVin(clean,decoded);
+   stopVinScan();
+   vinLookupStatus.textContent="VIN scanned and decoded. Review the vehicle details and save.";
+   vinLookupStatus.className="tiny authOk";
+ }catch(e){
+   vinScanStatus.textContent=e.message;
+ }
+}
+function stopVinScan(){
+ try{if(vinScanTimer)clearInterval(vinScanTimer)}catch{}
+ vinScanTimer=null;
+ try{vinReader?.reset?.()}catch{}
+ vinReader=null;
+ try{vinStream?.getTracks?.().forEach(t=>t.stop())}catch{}
+ vinStream=null;
+ vinVideo.srcObject=null;
+ vinScannerModal.classList.remove("open");
+ vinScanBusy=false;
+}
+
 function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";equipmentModal.classList.add("open")}
 function closeModal(id){document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
@@ -520,7 +665,7 @@ async function saveEquipment(){
    closeModal("equipmentModal");let id=editingId;await reloadCloud();if(id)openDetail(id);else show("equipment");
  }catch(e){alert(e.message)}
 }
-function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
+function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqVehicleType.value=a.vehicle_type||"";eqBodyClass.value=a.body_class||"";eqEngineDescription.value=a.engine_description||"";vinLookupStatus.textContent="";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
 async function deleteEquipment(id){if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
 function quickAdd(){if(!canEdit())return alert("Your role is view-only.");
  const detailOpen=document.getElementById("detail")?.classList.contains("active");
@@ -777,5 +922,14 @@ wireStaticControls();
 
 init();
 </script>
+
+<div id="vinScannerModal" class="modal"><div class="modalBox">
+<button class="close" onclick="stopVinScan()">✕</button><h2>Scan VIN</h2>
+<p class="sub">Point the camera at the VIN barcode on the vehicle. Equipment Cost Book will open the existing vehicle or fill a new equipment record.</p>
+<video id="vinVideo" playsinline muted style="width:100%;border-radius:14px;background:#000;min-height:220px"></video>
+<div id="vinScanStatus" class="tiny" style="margin-top:10px">Starting camera…</div>
+<br><button class="btn secondary wide" onclick="stopVinScan()">Cancel</button>
+</div></div>
+
 </body>
 </html>
