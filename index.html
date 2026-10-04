@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig V4.1.3</title>
+<title>CostRig V4.1.4</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -44,7 +44,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
         <label>Your name</label><input id="authName" placeholder="Your name">
         <label>Business name</label><input id="authBusiness" placeholder="My Business">
       </div>
-      <br><button id="authSubmit" class="btn wide" onclick="submitAuth()">Sign In</button>
+      <br><button id="authSubmit" type="button" class="btn wide" onclick="submitAuth()">Sign In</button>
       <div id="authMessage" class="tiny" style="margin-top:12px"></div>
     </div>
     <p class="tiny" style="text-align:center">CostRig uses your account ID and workspace membership to isolate business data with Supabase Row Level Security.</p>
@@ -52,7 +52,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1.3</button></header>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1.4</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -142,6 +142,72 @@ let authMode="signin", session=null, workspace=null, profile=null, entitlement=n
 let assets=[], maintenance=[], repairs=[], expenses=[], schedules=[], downtime=[];
 let currentId=null, editingId=null;
 
+// Explicit DOM references. Do not rely on browser-generated globals from element IDs.
+const authScreen=document.getElementById("authScreen");
+const authEmail=document.getElementById("authEmail");
+const authPassword=document.getElementById("authPassword");
+const authName=document.getElementById("authName");
+const authBusiness=document.getElementById("authBusiness");
+const authMessage=document.getElementById("authMessage");
+const authSubmit=document.getElementById("authSubmit");
+const signInTab=document.getElementById("signInTab");
+const signUpTab=document.getElementById("signUpTab");
+const signupFields=document.getElementById("signupFields");
+
+const goodCount=document.getElementById("goodCount");
+const attentionCount=document.getElementById("attentionCount");
+const downCount=document.getElementById("downCount");
+const allCost=document.getElementById("allCost");
+const maintCost=document.getElementById("maintCost");
+const repairCost=document.getElementById("repairCost");
+const expenseCost=document.getElementById("expenseCost");
+const maintenanceDueList=document.getElementById("maintenanceDueList");
+const attentionList=document.getElementById("attentionList");
+const equipmentList=document.getElementById("equipmentList");
+const workspaceLabel=document.getElementById("workspaceLabel");
+const homeGreeting=document.getElementById("homeGreeting");
+const detailContent=document.getElementById("detailContent");
+const reportsContent=document.getElementById("reportsContent");
+
+const profileNameText=document.getElementById("profileNameText");
+const profileEmailText=document.getElementById("profileEmailText");
+const profileWorkspaceText=document.getElementById("profileWorkspaceText");
+const profilePlanText=document.getElementById("profilePlanText");
+
+const equipmentModal=document.getElementById("equipmentModal");
+const equipmentModalTitle=document.getElementById("equipmentModalTitle");
+const eqName=document.getElementById("eqName");
+const eqType=document.getElementById("eqType");
+const eqYear=document.getElementById("eqYear");
+const eqMake=document.getElementById("eqMake");
+const eqModel=document.getElementById("eqModel");
+const eqSerial=document.getElementById("eqSerial");
+const eqVin=document.getElementById("eqVin");
+const eqTracking=document.getElementById("eqTracking");
+const eqMeter=document.getElementById("eqMeter");
+const eqPrice=document.getElementById("eqPrice");
+const eqPurchaseDate=document.getElementById("eqPurchaseDate");
+const eqStatus=document.getElementById("eqStatus");
+const eqNotes=document.getElementById("eqNotes");
+
+const entryModal=document.getElementById("entryModal");
+const entryEquipment=document.getElementById("entryEquipment");
+const entryType=document.getElementById("entryType");
+const entryCost=document.getElementById("entryCost");
+const entryDescription=document.getElementById("entryDescription");
+const entryDate=document.getElementById("entryDate");
+const entryNotes=document.getElementById("entryNotes");
+
+const serviceModal=document.getElementById("serviceModal");
+const serviceTitle=document.getElementById("serviceTitle");
+const serviceKind=document.getElementById("serviceKind");
+const serviceIntervalWrap=document.getElementById("serviceIntervalWrap");
+const serviceInterval=document.getElementById("serviceInterval");
+const serviceNext=document.getElementById("serviceNext");
+const serviceDateWrap=document.getElementById("serviceDateWrap");
+const serviceDays=document.getElementById("serviceDays");
+const serviceDate=document.getElementById("serviceDate");
+
 function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n||0))}
 function today(){return new Date().toISOString().slice(0,10)}
 function authHeaders(json=true){let h={apikey:SB_KEY};if(session?.access_token)h.Authorization="Bearer "+session.access_token;if(json)h["Content-Type"]="application/json";return h}
@@ -149,6 +215,7 @@ async function sb(path,opts={}){let r=await fetch(SB_URL+path,{...opts,headers:{
 function saveSession(){if(session)localStorage.setItem("costrig_session",JSON.stringify(session));else localStorage.removeItem("costrig_session")}
 function setAuthMode(mode){authMode=mode;document.getElementById("signInTab").classList.toggle("active",mode==="signin");document.getElementById("signUpTab").classList.toggle("active",mode==="signup");document.getElementById("signupFields").classList.toggle("hidden",mode!=="signup");document.getElementById("authSubmit").textContent=mode==="signin"?"Sign In":"Create Account";document.getElementById("authMessage").textContent=""}
 async function submitAuth(){
+ authMessage.textContent="Sign-in button received. Contacting CostRig cloud…";
  let email=authEmail.value.trim(),password=authPassword.value,msg=authMessage;
  msg.className="tiny"; 
  if(!email||password.length<6){msg.textContent="Enter a valid email and a password with at least 6 characters.";msg.classList.add("authError");return}
@@ -209,16 +276,16 @@ async function init(){
      session=null;saveSession();
    }
  }
- document.getElementById("authScreen").classList.remove("hidden");
+ authScreen.classList.remove("hidden");
 }
 async function enterAppSafe(){
- document.getElementById("authScreen").classList.add("hidden");
+ authScreen.classList.add("hidden");
  try{
    await reloadCloud();
    return true;
  }catch(e){
    console.error("CostRig cloud load failed",e);
-   document.getElementById("authScreen").classList.remove("hidden");
+   authScreen.classList.remove("hidden");
    authMessage.textContent="Cloud load failed: "+(e.message||"Unknown error");
    authMessage.className="tiny authError";
    return false;
