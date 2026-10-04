@@ -3,18 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0F172A">
-<title>Equipment Cost Book V4.7.1</title>
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cost Book">
-<meta name="application-name" content="Equipment Cost Book">
-<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
-<link rel="manifest" href="./manifest.webmanifest">
-
+<meta name="theme-color" content="#090c10">
+<title>Equipment Cost Book V4.7.2</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -29,7 +19,7 @@ h1{font-size:29px;margin:12px 0 4px}h2{font-size:18px;margin:24px 0 10px}.sub,.m
 label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,textarea{width:100%;background:#303944;color:white;border:1px solid #303b45;border-radius:12px;padding:12px;min-height:46px;outline:none}textarea{min-height:80px}
 .screen{display:none;padding-bottom:150px}.screen.active{display:block}.sectionEyebrow{font-size:11px;font-weight:900;letter-spacing:.8px;color:var(--muted);text-transform:uppercase}.kicker{font-size:11px;font-weight:900;letter-spacing:.9px;color:var(--orange)}
 .asset{display:flex;gap:12px;align-items:center}.assetIcon{width:54px;height:54px;border-radius:13px;background:#202831;display:grid;place-items:center;font-size:29px;flex:none}.assetMain{flex:1}.assetName{font-weight:800}.status{font-size:12px;margin-top:4px}
-.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(520px,100%);background:#2B333D;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:10;backdrop-filter:blur(18px)}.nav button{background:none;border:0;color:#8f99a2;padding:7px;border-radius:12px;min-height:52px}.nav button b{display:block;font-size:20px}.nav .active{color:var(--orange);background:#343E49}
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(520px,100%);background:#2B333D;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:10;backdrop-filter:blur(18px)}.nav button{background:none;border:0;color:#8f99a2;padding:7px;border-radius:12px;min-height:52px}.nav button b{display:block;font-size:20px}.nav .active{color:var(--orange);background:#343E49}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:30;padding:20px;overflow:auto;backdrop-filter:blur(6px)}.modal.open{display:block}.modalBox{max-width:500px;margin:24px auto 60px;background:#252D36;border:1px solid var(--line);border-radius:20px;padding:18px}.close{float:right;background:#242c34;color:white;border:0;border-radius:10px;padding:7px 10px}
 .auth{position:fixed;inset:0;z-index:60;background:var(--bg);padding:calc(28px + env(safe-area-inset-top)) 20px;overflow:auto}.auth.hidden{display:none}.authInner{max-width:460px;margin:auto}.authHero{padding:50px 0 20px}.authHero h1{font-size:38px;line-height:1.05}.seg{display:grid;grid-template-columns:1fr 1fr;background:#303944;border:1px solid var(--line);border-radius:13px;padding:4px;gap:4px}.seg button{border:0;border-radius:10px;padding:10px;background:transparent;color:var(--muted);font-weight:800}.seg button.active{background:var(--orange);color:#FFFFFF}
 .empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed #2b3741;border-radius:15px}.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#343E49;border:1px solid var(--line);border-radius:13px;padding:12px}.metric b{display:block;font-size:19px;margin-top:4px}.pill{font-size:11px;padding:5px 8px;border-radius:999px;background:#25303a}
@@ -65,7 +55,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.7.1</button></header>
+<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.7.2</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -144,6 +134,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 <nav class="nav">
 <button data-screen="home" class="active" onclick="show('home')"><b>⌂</b>Home</button>
 <button data-screen="equipment" onclick="show('equipment')"><b>▦</b>Equipment</button>
+<button id="navVinBtn" type="button" onclick="openVinFromNav()"><b>⌁</b>VIN</button>
 <button onclick="quickAdd()"><b>＋</b>Quick Add</button>
 <button data-screen="reports" onclick="show('reports')"><b>▤</b>Reports</button>
 </nav>
@@ -677,6 +668,12 @@ async function saveEquipment(){
 }
 function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqVehicleType.value=a.vehicle_type||"";eqBodyClass.value=a.body_class||"";eqEngineDescription.value=a.engine_description||"";vinLookupStatus.textContent="";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
 async function deleteEquipment(id){if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
+function openVinFromNav(){
+ if(!canEdit())return alert("Your role is view-only.");
+ openEquipment();
+ setTimeout(()=>startVinScan(),120);
+}
+
 function quickAdd(){if(!canEdit())return alert("Your role is view-only.");
  const detailOpen=document.getElementById("detail")?.classList.contains("active");
  if(detailOpen && currentId){
