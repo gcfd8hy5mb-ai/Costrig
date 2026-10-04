@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>CostRig V4.1.5</title>
+<title>CostRig V4.2.0</title>
 <style>
 :root{--bg:#090c10;--card:#11171d;--card2:#171e25;--line:#26303a;--text:#f5f7f8;--muted:#96a0aa;--orange:#ff7a00;--green:#18c875;--yellow:#ffc32b;--red:#ff4b3e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -53,7 +53,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.1.5</button></header>
+<header><div class="brand"><span class="brandMark">◔</span> COST<span>RIG</span></div><button class="badge" onclick="show('profile')">V4.2.0</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -65,7 +65,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 <h2>Recorded costs</h2>
 <div class="card"><div class="money" id="allCost">$0</div><div class="divider"></div><div class="row"><span>Maintenance</span><b id="maintCost">$0</b></div><div class="row"><span>Repairs</span><b id="repairCost">$0</b></div><div class="row"><span>Other</span><b id="expenseCost">$0</b></div></div>
-<h2>Maintenance due</h2><div id="maintenanceDueList"></div><h2>Needs attention</h2><div id="attentionList"></div>
+<h2>Active repairs</h2><div id="activeRepairsList"></div><h2>Maintenance due</h2><div id="maintenanceDueList"></div><h2>Needs attention</h2><div id="attentionList"></div>
 </section>
 
 <section id="equipment" class="screen">
@@ -119,10 +119,15 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 <div id="entryModal" class="modal"><div class="modalBox">
 <button class="close" onclick="closeModal('entryModal')">✕</button><h2>Add Cost</h2>
 <label>Equipment</label><select id="entryEquipment"></select>
-<label>Type</label><select id="entryType"><option value="maintenance">Maintenance</option><option value="repair">Repair</option><option value="expense">Other Expense</option></select>
+<label>Type</label><select id="entryType" onchange="repairFields.classList.toggle('hidden',this.value!=='repair')"><option value="maintenance">Maintenance</option><option value="repair">Repair</option><option value="expense">Other Expense</option></select>
 <label>Cost</label><input id="entryCost" type="number" inputmode="decimal" placeholder="0.00">
 <label>Description</label><input id="entryDescription" placeholder="Oil + filter">
 <label>Date</label><input id="entryDate" type="date">
+<div id="repairFields" class="hidden">
+<label>Repair status</label><select id="repairStatus"><option value="open">Open</option><option value="waiting_parts">Waiting on Parts</option><option value="in_progress">In Progress</option><option value="completed">Completed</option></select>
+<label>Vendor / shop</label><input id="repairVendor" placeholder="Optional">
+<label>Mark equipment out of service?</label><select id="repairDowntime"><option value="no">No</option><option value="yes">Yes</option></select>
+</div>
 <label>Notes</label><textarea id="entryNotes" placeholder="Optional notes"></textarea>
 <br><button class="btn wide" onclick="saveEntry()">Save Entry</button>
 </div></div>
@@ -163,6 +168,7 @@ const allCost=document.getElementById("allCost");
 const maintCost=document.getElementById("maintCost");
 const repairCost=document.getElementById("repairCost");
 const expenseCost=document.getElementById("expenseCost");
+const activeRepairsList=document.getElementById("activeRepairsList");
 const maintenanceDueList=document.getElementById("maintenanceDueList");
 const attentionList=document.getElementById("attentionList");
 const equipmentList=document.getElementById("equipmentList");
@@ -199,6 +205,10 @@ const entryCost=document.getElementById("entryCost");
 const entryDescription=document.getElementById("entryDescription");
 const entryDate=document.getElementById("entryDate");
 const entryNotes=document.getElementById("entryNotes");
+const repairFields=document.getElementById("repairFields");
+const repairStatus=document.getElementById("repairStatus");
+const repairVendor=document.getElementById("repairVendor");
+const repairDowntime=document.getElementById("repairDowntime");
 
 const serviceModal=document.getElementById("serviceModal");
 const serviceTitle=document.getElementById("serviceTitle");
@@ -342,7 +352,7 @@ function render(){
  let all=assets.map(a=>assetCosts(a.id)),mt=all.reduce((n,c)=>n+c.m,0),rp=all.reduce((n,c)=>n+c.r,0),ex=all.reduce((n,c)=>n+c.e,0);
  goodCount.textContent=assets.filter(a=>a.status==="good").length;attentionCount.textContent=assets.filter(a=>a.status==="attention").length;downCount.textContent=assets.filter(a=>a.status==="down").length;
  allCost.textContent=money(mt+rp+ex);maintCost.textContent=money(mt);repairCost.textContent=money(rp);expenseCost.textContent=money(ex);
- maintenanceDueList.innerHTML=schedules.map(s=>({s,st:scheduleState(s)})).filter(x=>x.st.state!=="ok").sort((a,b)=>a.st.state==="overdue"?-1:1).map(x=>scheduleCard(x.s)).join("")||'<div class="empty">No maintenance due soon.</div>';attentionList.innerHTML=assets.filter(a=>a.status!=="good").map(assetCard).join("")||'<div class="empty">Everything looks good.</div>';
+ activeRepairsList.innerHTML=repairs.filter(r=>r.status!=="completed").map(repairCard).join("")||'<div class="empty">No active repairs.</div>';maintenanceDueList.innerHTML=schedules.map(s=>({s,st:scheduleState(s)})).filter(x=>x.st.state!=="ok").sort((a,b)=>a.st.state==="overdue"?-1:1).map(x=>scheduleCard(x.s)).join("")||'<div class="empty">No maintenance due soon.</div>';attentionList.innerHTML=assets.filter(a=>a.status!=="good").map(assetCard).join("")||'<div class="empty">Everything looks good.</div>';
  equipmentList.innerHTML=assets.map(assetCard).join("")||'<div class="empty">Add your first piece of equipment.</div>';
  workspaceLabel.textContent=workspace?workspace.name:"";
  let h=new Date().getHours();homeGreeting.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
@@ -377,13 +387,38 @@ function quickAdd(){
    openEntry("maintenance");
  }
 }
-function openEntry(type,id){entryType.value=type||"maintenance";entryEquipment.innerHTML=assets.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");if(id)entryEquipment.value=id;entryDate.value=today();entryCost.value="";entryDescription.value="";entryNotes.value="";entryModal.classList.add("open")}
-async function saveEntry(){let aid=entryEquipment.value,type=entryType.value,cost=Number(entryCost.value||0),desc=entryDescription.value.trim()||type,date=entryDate.value||today(),notes=entryNotes.value.trim();try{
- if(type==="maintenance")await sb("/rest/v1/maintenance_records",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,service_date:date,cost,notes:desc+(notes?" — "+notes:""),created_by:userId()})});
- else if(type==="repair")await sb("/rest/v1/repairs",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,title:desc,description:notes||null,status:"completed",opened_at:date+"T12:00:00Z",completed_at:date+"T12:00:00Z",cost,created_by:userId()})});
- else await sb("/rest/v1/expenses",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,category:"other",amount:cost,expense_date:date,description:desc+(notes?" — "+notes:""),created_by:userId()})});
- closeModal("entryModal");await reloadCloud();openDetail(aid);
-}catch(e){alert(e.message)}}
+function openEntry(type,id){
+ entryType.value=type||"maintenance";
+ entryEquipment.innerHTML=assets.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");
+ if(id)entryEquipment.value=id;
+ entryDate.value=today();entryCost.value="";entryDescription.value="";entryNotes.value="";
+ repairStatus.value="open";repairVendor.value="";repairDowntime.value="no";
+ repairFields.classList.toggle("hidden",entryType.value!=="repair");
+ entryModal.classList.add("open")
+}
+async function saveEntry(){
+ let aid=entryEquipment.value,type=entryType.value,cost=Number(entryCost.value||0),desc=entryDescription.value.trim()||type,date=entryDate.value||today(),notes=entryNotes.value.trim();
+ try{
+  if(type==="maintenance"){
+   await sb("/rest/v1/maintenance_records",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,service_date:date,cost,notes:desc+(notes?" — "+notes:""),created_by:userId()})});
+  }else if(type==="repair"){
+   let status=repairStatus.value;
+   let completed=status==="completed";
+   let body={workspace_id:workspace.id,asset_id:aid,title:desc,description:notes||null,status,opened_at:date+"T12:00:00Z",completed_at:completed?date+"T12:00:00Z":null,cost,vendor:repairVendor.value.trim()||null,created_by:userId()};
+   await sb("/rest/v1/repairs",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});
+   if(repairDowntime.value==="yes"&&!completed){
+     let existing=downtime.find(x=>x.asset_id===aid&&!x.ended_at);
+     if(!existing){
+       await sb("/rest/v1/downtime_events",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,started_at:new Date(date+"T12:00:00Z").toISOString(),reason:"Repair: "+desc,notes:notes||null,created_by:userId()})});
+     }
+     await sb("/rest/v1/assets?id=eq."+aid,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"down",updated_at:new Date().toISOString()})});
+   }
+  }else{
+   await sb("/rest/v1/expenses",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,category:"other",amount:cost,expense_date:date,description:desc+(notes?" — "+notes:""),created_by:userId()})});
+  }
+  closeModal("entryModal");await reloadCloud();openDetail(aid);
+ }catch(e){alert(e.message)}
+}
 function openService(id){currentId=id;let a=assets.find(x=>x.id===id);serviceTitle.value="";serviceKind.value=a.current_mileage!=null?"miles":a.current_hours!=null?"hours":"date";serviceInterval.value="";serviceNext.value="";serviceDays.value=365;serviceDate.value=today();syncServiceFields();serviceModal.classList.add("open")}
 function syncServiceFields(){let d=serviceKind.value==="date";serviceIntervalWrap.classList.toggle("hidden",d);serviceDateWrap.classList.toggle("hidden",!d)}
 async function saveService(){let title=serviceTitle.value.trim();if(!title)return alert("Enter a service name.");let kind=serviceKind.value,body={workspace_id:workspace.id,asset_id:currentId,title,active:true};if(kind==="date"){body.interval_days=Number(serviceDays.value||0)||null;body.next_due_date=serviceDate.value||null}else if(kind==="miles"){body.interval_miles=Number(serviceInterval.value||0)||null;body.next_due_mileage=Number(serviceNext.value||0)||null}else{body.interval_hours=Number(serviceInterval.value||0)||null;body.next_due_hours=Number(serviceNext.value||0)||null}try{await sb("/rest/v1/maintenance_schedules",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});closeModal("serviceModal");await reloadCloud();openDetail(currentId)}catch(e){alert(e.message)}}
@@ -411,14 +446,40 @@ async function completeService(scheduleId){
    await reloadCloud();openDetail(a.id);
  }catch(e){alert(e.message)}
 }
-function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)return;let c=assetCosts(id),active=downtime.find(x=>x.asset_id===id&&!x.ended_at),sch=schedules.filter(x=>x.asset_id===id),hist=[
+
+function repairStatusText(s){
+ return s==="waiting_parts"?"Waiting on Parts":s==="in_progress"?"In Progress":s==="completed"?"Completed":"Open"
+}
+function repairCard(r){
+ const a=assets.find(x=>x.id===r.asset_id);
+ return `<div class="card"><div class="row"><div><div class="kicker">${repairStatusText(r.status)}</div><b>${esc(r.title)}</b><div class="tiny">${a?esc(a.name)+" · ":""}${(r.opened_at||"").slice(0,10)}${r.vendor?" · "+esc(r.vendor):""}</div></div><b>${money(r.cost)}</b></div><div style="height:10px"></div><div class="row"><button class="miniBtn" onclick="openDetail('${r.asset_id}')">View Asset</button>${r.status!=="completed"?`<button class="btn" onclick="completeRepair('${r.id}')">Complete Repair</button>`:""}</div></div>`
+}
+async function completeRepair(id){
+ const r=repairs.find(x=>x.id===id);if(!r)return;
+ const aid=r.asset_id;
+ try{
+   await sb("/rest/v1/repairs?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"completed",completed_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
+   const active=downtime.find(x=>x.asset_id===aid&&!x.ended_at);
+   if(active){
+     await sb("/rest/v1/downtime_events?id=eq."+active.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({ended_at:new Date().toISOString()})});
+     await sb("/rest/v1/assets?id=eq."+aid,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});
+   }
+   await reloadCloud();openDetail(aid);
+ }catch(e){alert(e.message)}
+}
+function downtimeDays(d){
+ let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();
+ return Math.max(0,Math.ceil((e-s)/86400000));
+}
+
+function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)return;let c=assetCosts(id),active=downtime.find(x=>x.asset_id===id&&!x.ended_at),activeRepair=repairs.find(x=>x.asset_id===id&&x.status!=="completed"),sch=schedules.filter(x=>x.asset_id===id),hist=[
  ...maintenance.filter(x=>x.asset_id===id).map(x=>({date:x.service_date,type:"Maintenance",title:x.notes||"Maintenance",cost:x.cost})),
  ...repairs.filter(x=>x.asset_id===id).map(x=>({date:(x.opened_at||"").slice(0,10),type:"Repair",title:x.title,cost:x.cost})),
  ...expenses.filter(x=>x.asset_id===id).map(x=>({date:x.expense_date,type:"Expense",title:x.description||x.category,cost:x.amount}))
 ].sort((x,y)=>String(y.date).localeCompare(String(x.date)));
  detailContent.innerHTML=`<div class="row"><div><h1>${esc(a.name)}</h1><p class="${a.status}">${statusText(a.status)}</p></div><button class="miniBtn" onclick="editEquipment('${id}')">Edit</button></div><p class="sub">${[a.year,a.make,a.model].filter(Boolean).map(esc).join(" ")||esc(a.asset_type||"Equipment")} · ${assetMeter(a)}</p>
  ${(a.vin||a.serial_number||a.purchase_date||a.notes)?`<div class="card">${a.vin?`<div class="row"><span class="muted">VIN</span><b>${esc(a.vin)}</b></div>`:""}${a.serial_number?`<div class="row"><span class="muted">Serial</span><b>${esc(a.serial_number)}</b></div>`:""}${a.purchase_date?`<div class="row"><span class="muted">Purchased</span><b>${a.purchase_date}</b></div>`:""}${a.notes?`<div class="divider"></div><div class="tiny">${esc(a.notes)}</div>`:""}</div>`:""}
- ${active?`<div class="notice"><b>Out of Service</b><div class="tiny">${esc(active.reason||"No reason recorded")}</div><br><button class="btn wide" onclick="returnToService('${id}')">Return to Service</button></div>`:`<button class="btn secondary wide" onclick="markOut('${id}')">Mark Out of Service</button>`}
+ ${activeRepair?`<div class="notice"><div class="kicker">ACTIVE REPAIR · ${repairStatusText(activeRepair.status)}</div><b>${esc(activeRepair.title)}</b><div class="tiny">${activeRepair.vendor?esc(activeRepair.vendor)+" · ":""}${money(activeRepair.cost)}</div><br><button class="btn wide" onclick="completeRepair('${activeRepair.id}')">Complete Repair</button></div>`:""}${active?`<div class="notice"><b>Out of Service · ${downtimeDays(active)} day${downtimeDays(active)===1?"":"s"}</b><div class="tiny">${esc(active.reason||"No reason recorded")}</div><br><button class="btn wide" onclick="returnToService('${id}')">Return to Service</button></div>`:`<button class="btn secondary wide" onclick="markOut('${id}')">Mark Out of Service</button>`}
  <div class="heroCard"><div class="kicker">RECORDED COSTS</div><div class="money">${money(c.m+c.r+c.e)}</div><div class="metricGrid"><div class="metric"><span class="muted">Maintenance</span><b>${money(c.m)}</b></div><div class="metric"><span class="muted">Repairs</span><b>${money(c.r)}</b></div><div class="metric"><span class="muted">Other</span><b>${money(c.e)}</b></div><div class="metric"><span class="muted">Purchase</span><b>${money(a.purchase_cost)}</b></div></div></div>
  <h2>Maintenance Schedule</h2><button class="btn secondary wide" onclick="openService('${id}')">+ Add Schedule</button><div style="height:10px"></div>${sch.length?sch.map(s=>scheduleCard(s,true)).join(""):'<div class="empty">No scheduled maintenance yet.</div>'}
  <div class="row" style="margin-top:14px"><button class="btn" onclick="openEntry('maintenance','${id}')">+ Maintenance</button><button class="btn" onclick="openEntry('repair','${id}')">+ Repair</button></div><br><button class="btn secondary wide" onclick="openEntry('expense','${id}')">+ Other Expense</button>
@@ -426,7 +487,7 @@ function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)retur
  <br><button class="btn danger wide" onclick="deleteEquipment('${id}')">Delete Equipment</button>`;
  show("detail");
 }
-function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div><div class="metric"><span class="muted">Highest cost</span><b>${rows[0]?money(rows[0].total):money(0)}</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||'<div class="empty">Record costs to unlock reports.</div>'}`}
+function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,openRepairCount=repairs.filter(r=>r.status!=="completed").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Open repairs</span><b>${openRepairCount}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||'<div class="empty">Record costs to unlock reports.</div>'}`}
 function syncProfile(){profileNameText.textContent=profile?.display_name||"CostRig User";profileEmailText.textContent=authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase()}
 
 
