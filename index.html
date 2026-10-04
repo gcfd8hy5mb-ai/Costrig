@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090c10">
-<title>Equipment Cost Book V4.5.0</title>
+<title>Equipment Cost Book V4.6.0</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -54,7 +54,7 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 </div>
 
 <div class="app">
-<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.5.0</button></header>
+<header><div class="brand"><span class="brandMark">▣</span><span class="brandMain">EQUIPMENT</span><span class="brandAccent">COST BOOK</span></div><button class="badge" onclick="show('profile')">V4.6.0</button></header>
 <div class="logoSub">KNOW WHAT YOUR EQUIPMENT REALLY COSTS.</div>
 
 <section id="home" class="screen active">
@@ -86,11 +86,25 @@ label{display:block;color:#aab3bb;font-size:13px;margin:12px 0 6px}input,select,
 <div id="reportsContent"></div>
 </section>
 
+<section id="pro" class="screen">
+<div class="row"><div><div class="sectionEyebrow">Equipment Cost Book Pro</div><h1>See what is costing you money.</h1><p class="sub">Unlock full cost intelligence, advanced reports, larger teams, and deeper equipment insights.</p></div><button class="miniBtn" onclick="show('home')">Done</button></div>
+<div class="card"><div class="row"><div><b>Full Cost Intelligence</b><div class="tiny">Cost per mile/hour, problem-asset detection, monthly trends.</div></div><span class="pill">PRO</span></div></div>
+<div class="card"><div class="row"><div><b>Advanced Reports</b><div class="tiny">Most expensive equipment, trend history, deeper breakdowns.</div></div><span class="pill">PRO</span></div></div>
+<div class="card"><div class="row"><div><b>Team + Activity</b><div class="tiny">More team members, assignments, and activity history.</div></div><span class="pill">PRO</span></div></div>
+<div class="card"><div class="row"><div><b>Data stays yours</b><div class="tiny">Downgrading never deletes Pro history. Upgrade again later and pick up where you left off.</div></div></div></div>
+<div class="card">
+<div class="kicker">BETA PREVIEW</div>
+<p class="sub" style="margin-top:6px">No payment required during beta. Owners can switch between Free and Pro to compare the experience.</p>
+<div class="seg"><button id="betaFreeBtn" type="button" onclick="setBetaPlan('free')">FREE</button><button id="betaProBtn" type="button" onclick="setBetaPlan('pro')">PRO</button></div>
+<div id="betaPlanMessage" class="tiny" style="margin-top:10px"></div>
+</div>
+</section>
+
 <section id="profile" class="screen">
 <div class="row"><div><h1>Profile & Cloud</h1><p class="sub">Account and workspace.</p></div><button class="miniBtn" onclick="show('home')">Done</button></div>
 <div class="card">
 <div class="row"><div><b id="profileNameText">Equipment Cost Book User</b><div class="muted" id="profileEmailText"></div></div><span class="pill">CLOUD</span></div>
-<div class="divider"></div><div class="row"><span>Workspace</span><b id="profileWorkspaceText">—</b></div><div class="row"><span>Your role</span><b id="profileRoleText">—</b></div><div class="row"><span>Plan</span><b id="profilePlanText">FREE</b></div>
+<div class="divider"></div><div class="row"><span>Workspace</span><b id="profileWorkspaceText">—</b></div><div class="row"><span>Your role</span><b id="profileRoleText">—</b></div><div class="row"><span>Plan</span><b id="profilePlanText">FREE</b></div><br><button id="upgradeBtn" class="btn wide" onclick="show('pro')">View Pro</button>
 </div>
 
 <h2>Company</h2>
@@ -206,6 +220,10 @@ const profileNameText=document.getElementById("profileNameText");
 const profileEmailText=document.getElementById("profileEmailText");
 const profileWorkspaceText=document.getElementById("profileWorkspaceText");
 const profilePlanText=document.getElementById("profilePlanText");
+const upgradeBtn=document.getElementById("upgradeBtn");
+const betaFreeBtn=document.getElementById("betaFreeBtn");
+const betaProBtn=document.getElementById("betaProBtn");
+const betaPlanMessage=document.getElementById("betaPlanMessage");
 const profileRoleText=document.getElementById("profileRoleText");
 const workspaceNameInput=document.getElementById("workspaceNameInput");
 const teamAdminPanel=document.getElementById("teamAdminPanel");
@@ -440,6 +458,10 @@ function intelligenceCard(title,value,sub){
   return `<div class="metric"><span class="muted">${esc(title)}</span><b>${esc(value)}</b><div class="tiny">${esc(sub||"")}</div></div>`;
 }
 function renderCostIntelligence(){
+  if(!isPro()){
+    costIntelligence.innerHTML=`<div class="card"><div class="row"><div><b>Cost Intelligence</b><div class="tiny">Upgrade to Pro for problem-asset detection, cost per hour/mile, and monthly analysis.</div></div><button class="miniBtn" onclick="show('pro')">Unlock</button></div></div>`;
+    return;
+  }
   if(!assets.length){costIntelligence.innerHTML='<div class="empty">Add equipment and costs to unlock cost intelligence.</div>';return}
 
   const rows=assets.map(a=>{
@@ -610,6 +632,45 @@ function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)retur
 }
 function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,openRepairCount=repairs.filter(r=>r.status!=="completed").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Open repairs</span><b>${openRepairCount}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||'<div class="empty">Record costs to unlock reports.</div>'}`}
 
+
+function isPro(){return String(entitlement?.plan||"free").toLowerCase()==="pro" && entitlement?.active!==false}
+function proGate(feature){
+ if(isPro())return true;
+ show("pro");
+ if(betaPlanMessage){
+   betaPlanMessage.textContent=feature+" is a Pro feature.";
+   betaPlanMessage.className="tiny authError";
+ }
+ return false;
+}
+function syncPlanUI(){
+ const pro=isPro();
+ if(betaFreeBtn)betaFreeBtn.classList.toggle("active",!pro);
+ if(betaProBtn)betaProBtn.classList.toggle("active",pro);
+ if(upgradeBtn)upgradeBtn.textContent=pro?"Manage Pro Beta":"View Pro";
+ if(profilePlanText)profilePlanText.textContent=pro?"PRO":"FREE";
+}
+async function setBetaPlan(plan){
+ if(currentRole!=="owner")return alert("Only the workspace owner can change the beta plan.");
+ betaPlanMessage.textContent="Updating beta plan…";
+ try{
+   const uid=userId();
+   let existing=await sb("/rest/v1/entitlements?select=user_id&user_id=eq."+uid+"&limit=1");
+   if(existing.data?.length){
+     await sb("/rest/v1/entitlements?user_id=eq."+uid,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({plan,active:true,source:"beta",updated_at:new Date().toISOString()})});
+   }else{
+     await sb("/rest/v1/entitlements",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({user_id:uid,plan,active:true,source:"beta",updated_at:new Date().toISOString()})});
+   }
+   entitlement={...(entitlement||{}),plan,active:true,source:"beta"};
+   betaPlanMessage.textContent="Beta plan set to "+plan.toUpperCase()+".";
+   betaPlanMessage.className="tiny authOk";
+   syncPlanUI();render();renderReports();renderTeam();renderActivity();
+ }catch(e){
+   betaPlanMessage.textContent=e.message;
+   betaPlanMessage.className="tiny authError";
+ }
+}
+
 function roleLabel(r){return r==="owner"?"Owner":r==="manager"?"Manager":r==="technician"?"Technician":"Viewer"}
 function canManageTeam(){return currentRole==="owner"||currentRole==="manager"}
 function canEdit(){return currentRole==="owner"||currentRole==="manager"||currentRole==="technician"}
@@ -623,6 +684,10 @@ function renderTeam(){
 }
 
 function renderActivity(){
+ if(!isPro()){
+   activityList.innerHTML='<div class="card"><div class="row"><div><b>Activity History</b><div class="tiny">Available with Pro.</div></div><button class="miniBtn" onclick="show(\'pro\')">Unlock</button></div></div>';
+   return;
+ }
  activityList.innerHTML=activityItems.map(x=>{
    const actor=teamMembers.find(m=>m.user_id===x.actor_user_id);
    const when=new Date(x.created_at).toLocaleString();
@@ -631,6 +696,7 @@ function renderActivity(){
 }
 
 async function createTeamInvite(){
+ if(!isPro() && teamMembers.length>=2)return proGate("More than 2 team members");
  const email=inviteEmail.value.trim();
  if(!email)return alert("Enter an email address.");
  try{
@@ -659,7 +725,7 @@ async function saveWorkspaceName(){
  }catch(e){alert(e.message)}
 }
 
-function syncProfile(){profileNameText.textContent=profile?.display_name||"Equipment Cost Book User";profileEmailText.textContent=authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profileRoleText.textContent=roleLabel(currentRole);profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase();workspaceNameInput.value=workspace?.name||""}
+function syncProfile(){profileNameText.textContent=profile?.display_name||"Equipment Cost Book User";profileEmailText.textContent=authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profileRoleText.textContent=roleLabel(currentRole);profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase();workspaceNameInput.value=workspace?.name||"";syncPlanUI()}
 
 
 window.addEventListener("error",(e)=>{
