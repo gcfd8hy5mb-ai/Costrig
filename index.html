@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" href="./icon-192.png" type="image/png">
-<title>Equipment Cost Book V4.8.0</title>
+<title>Equipment Cost Book V4.8.1</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -43,7 +43,7 @@ h1{font-size:28px;line-height:1.2;letter-spacing:-.7px;font-weight:650;margin:8p
 label{margin-top:18px;font-size:13px;font-weight:500;color:#CDDAEC}input,select,textarea{font-size:16px;min-width:0;background:#1A2739;border-color:#445B76;min-height:49px;border-radius:12px;padding:12px;color:var(--text)}input::placeholder,textarea::placeholder{color:#91A3BC}input:focus,select:focus,textarea:focus{border-color:#A9C8EF;box-shadow:0 0 0 3px #A9C8EF20}.empty{padding:24px 18px;border:1px dashed #49617E;background:#182538;font-size:13px;border-radius:16px}.notice{line-height:1.5}
 .screen{padding-bottom:16px}.nav{background:#192538;border-color:#3B4D66;padding:7px 6px calc(7px + env(safe-area-inset-bottom));gap:2px}.nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:58px;font-size:10px;line-height:1.1;color:#AEBED2;padding:7px 2px;white-space:nowrap}.nav svg{width:22px;height:22px;flex-shrink:0}.nav .active{color:#D9E9FF;background:#304765}
 .modal{padding:calc(16px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom));background:#050B15D9}.modalBox{background:#202C3D;border-color:#405571;margin:10px auto 30px;border-radius:22px;padding:20px}.modalBox h2{margin-top:4px;margin-bottom:18px;font-size:21px}.close{width:44px;height:44px;margin:-4px -4px 4px 8px;background:#2C3D55;float:right;font-size:16px}.modalBox .sub{margin-bottom:24px}
-.auth{padding:calc(24px + env(safe-area-inset-top)) 20px 32px}.authHero{padding:34px 0 6px}.authHero h1{font-size:34px;line-height:1.14;letter-spacing:-1px;font-weight:650;margin:10px 0 14px}.auth .card{margin-top:16px}.auth .card label:first-child{margin-top:0}.auth .brand{margin-bottom:5px}.seg{background:#1B293D;border-color:#3C516D;padding:4px}.seg button{font-size:13px;font-weight:550;min-height:44px}.seg button.active{background:#3F5D82}.versionNote{color:var(--muted);text-align:center;font-size:11px;margin:26px 0 0}#runtimeStatus.authOk{display:none}
+.auth{padding:calc(24px + env(safe-area-inset-top)) 20px 32px}.authHero{padding:34px 0 6px}.authHero h1{font-size:34px;line-height:1.14;letter-spacing:-1px;font-weight:650;margin:10px 0 14px}.auth .card{margin-top:16px}.auth .card label:first-child{margin-top:0}.auth .brand{margin-bottom:5px}.seg{background:#1B293D;border-color:#3C516D;padding:4px}.seg button{font-size:13px;font-weight:550;min-height:44px}.seg button.active{background:#3F5D82}.emptyAction b{display:block;font-size:17px;color:var(--text)}.emptyAction p{font-size:13px;line-height:1.5;margin:7px 0 16px}.emptyAction .btn{width:100%}.versionNote{color:var(--muted);text-align:center;font-size:11px;margin:26px 0 0}#runtimeStatus.authOk{display:none}
 @media(max-width:360px){.app{padding-left:16px;padding-right:16px}.brand .brandAccent{font-size:18px}.metricGrid{gap:8px}.metric{padding:11px}.nav button{font-size:9px}.row{gap:8px}.btn{padding:12px}.authHero h1{font-size:30px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
@@ -94,7 +94,7 @@ label{margin-top:18px;font-size:13px;font-weight:500;color:#CDDAEC}input,select,
 </section>
 
 <section id="equipment" class="screen">
-<div class="row"><div><div class="sectionEyebrow">Your equipment</div><h1>Equipment</h1><p class="sub">Everything your business depends on.</p></div><button class="btn" onclick="openEquipment()">+ Add</button></div>
+<div class="row"><div><div class="sectionEyebrow">Your equipment</div><h1>Equipment</h1><p class="sub">Everything your business depends on.</p></div><button id="addEquipmentButton" class="btn" onclick="openEquipment()">+ Add</button></div>
 <div id="equipmentList"></div>
 </section>
 
@@ -148,7 +148,7 @@ label{margin-top:18px;font-size:13px;font-weight:500;color:#CDDAEC}input,select,
 <div id="activityList"></div>
 
 <button class="btn secondary wide" onclick="reloadCloud()">Refresh Cloud Data</button><br><br>
-<button class="btn danger wide" onclick="signOut()">Sign Out</button><p class="versionNote">Equipment Cost Book · V4.8.0</p>
+<button class="btn danger wide" onclick="signOut()">Sign Out</button><p class="versionNote">Equipment Cost Book · V4.8.1</p>
 </section>
 </div>
 
@@ -156,7 +156,7 @@ label{margin-top:18px;font-size:13px;font-weight:500;color:#CDDAEC}input,select,
 <button data-screen="home" class="active" onclick="show('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg><span>Home</span></button>
 <button data-screen="equipment" onclick="show('equipment')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18M9 4v16"/></svg><span>Equipment</span></button>
 <button id="navVinBtn" type="button" onclick="openVinFromNav()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H4a1 1 0 0 0-1 1v4m13-5h4a1 1 0 0 1 1 1v4M3 16v4a1 1 0 0 0 1 1h4m8 0h4a1 1 0 0 0 1-1v-4M7 7v10M10 7v10M14 7v10M17 7v10"/></svg><span>VIN</span></button>
-<button onclick="quickAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8m-4-4h8"/></svg><span>Quick Add</span></button>
+<button id="quickAddButton" onclick="quickAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8m-4-4h8"/></svg><span>Quick Add</span></button>
 <button data-screen="reports" onclick="show('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18h17M9 16v-5m5 5V7m5 9V4"/></svg><span>Reports</span></button>
 </nav>
 
@@ -466,7 +466,7 @@ function scheduleState(s){
 }
 function scheduleCard(s,detail=false){
  const a=assets.find(x=>x.id===s.asset_id),st=scheduleState(s),cls=st.state==="overdue"?"overdue":st.state==="soon"?"dueSoon":"";
- return `<div class="card ${cls}" ${detail?"":`onclick="openDetail('${s.asset_id}')"`}><div class="row"><div><div class="dueLabel ${st.state==="overdue"?"down":st.state==="soon"?"attention":"good"}">${st.state==="overdue"?"OVERDUE":st.state==="soon"?"DUE SOON":"SCHEDULED"}</div><b>${esc(s.title)}</b><div class="tiny">${a?esc(a.name)+" · ":""}${st.label}</div></div>${detail?`<button class="miniBtn" onclick="completeService('${s.id}')">Complete</button>`:"<b>›</b>"}</div></div>`
+ return `<div class="card ${cls}" ${detail?"":`onclick="openDetail('${s.asset_id}')"`}><div class="row"><div><div class="dueLabel ${st.state==="overdue"?"down":st.state==="soon"?"attention":"good"}">${st.state==="overdue"?"OVERDUE":st.state==="soon"?"DUE SOON":"SCHEDULED"}</div><b>${esc(s.title)}</b><div class="tiny">${a?esc(a.name)+" · ":""}${st.label}</div></div>${detail&&canEdit()?`<button class="miniBtn" onclick="completeService('${s.id}')">Complete</button>`:detail?"":"<b>›</b>"}</div></div>`
 }
 
 function assetCard(a){let c=assetCosts(a.id),sum=c.m+c.r+c.e;return `<div class="card asset" onclick="openDetail('${a.id}')"><div class="assetIcon">${icon(a.asset_type)}</div><div class="assetMain"><div class="assetName">${esc(a.name)}</div><div class="muted">${assetMeter(a)}</div><div class="status ${a.status}">${statusText(a.status)}</div><div class="tiny">${money(sum)} recorded costs</div></div><b>›</b></div>`}
@@ -556,7 +556,16 @@ function render(){
  goodCount.textContent=assets.filter(a=>a.status==="good").length;attentionCount.textContent=assets.filter(a=>a.status==="attention").length;downCount.textContent=assets.filter(a=>a.status==="down").length;
  allCost.textContent=money(mt+rp+ex);maintCost.textContent=money(mt);repairCost.textContent=money(rp);expenseCost.textContent=money(ex);
  renderCostIntelligence();activeRepairsList.innerHTML=repairs.filter(r=>r.status!=="completed").map(repairCard).join("")||'<div class="empty">No active repairs.</div>';maintenanceDueList.innerHTML=schedules.map(s=>({s,st:scheduleState(s)})).filter(x=>x.st.state!=="ok").sort((a,b)=>a.st.state==="overdue"?-1:1).map(x=>scheduleCard(x.s)).join("")||'<div class="empty">No maintenance due soon.</div>';attentionList.innerHTML=assets.filter(a=>a.status!=="good").map(assetCard).join("")||'<div class="empty">Everything looks good.</div>';
- equipmentList.innerHTML=assets.map(assetCard).join("")||'<div class="empty">Add your first piece of equipment.</div>';
+ equipmentList.innerHTML=assets.map(assetCard).join("")||'<div class="empty emptyAction"><b>No equipment yet</b><p>Add your first truck, mower, trailer, or tool to start tracking its costs.</p><button class="btn" onclick="openEquipment()">Add Equipment</button></div>';
+ if(!assets.length){
+   activeRepairsList.innerHTML='<div class="empty">Repairs will show here once you add equipment.</div>';
+   maintenanceDueList.innerHTML='<div class="empty">Maintenance schedules will show here after you add equipment.</div>';
+   attentionList.innerHTML='<div class="empty emptyAction"><b>Start with your equipment</b><p>Add an asset to track repairs, maintenance, and downtime.</p><button class="btn" onclick="openEquipment()">Add Equipment</button></div>';
+ }
+ const addEquipmentButton=document.getElementById("addEquipmentButton");
+ if(addEquipmentButton)addEquipmentButton.classList.toggle("hidden",!canEdit());
+ document.getElementById("quickAddButton").classList.toggle("hidden",!canEdit());
+ document.getElementById("navVinBtn").classList.toggle("hidden",!canEdit());
  workspaceLabel.textContent=workspace?workspace.name:"";
  let h=new Date().getHours();homeGreeting.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
 }
@@ -730,6 +739,7 @@ function stopVinScan(){
 function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";eqType.value="Truck";eqTracking.value="miles";eqVehicleType.value="";eqBodyClass.value="";eqEngineDescription.value="";vinLookupStatus.textContent="";vinLookupStatus.className="tiny";equipmentModal.classList.add("open")}
 function closeModal(id){document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
+ if(!canEdit())return alert("Your role is view-only.");
  let name=eqName.value.trim();if(!name)return alert("Enter an equipment name.");
  let tracking=eqTracking.value,meter=Number(eqMeter.value||0),body={
    workspace_id:workspace.id,name,asset_type:eqType.value,status:eqStatus.value,
@@ -746,8 +756,8 @@ async function saveEquipment(){
    closeModal("equipmentModal");let id=editingId;await reloadCloud();if(id)openDetail(id);else show("equipment");
  }catch(e){alert(e.message)}
 }
-function editEquipment(id){let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqVehicleType.value=a.vehicle_type||"";eqBodyClass.value=a.body_class||"";eqEngineDescription.value=a.engine_description||"";vinLookupStatus.textContent="";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
-async function deleteEquipment(id){if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
+function editEquipment(id){if(!canEdit())return alert("Your role is view-only.");let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqVehicleType.value=a.vehicle_type||"";eqBodyClass.value=a.body_class||"";eqEngineDescription.value=a.engine_description||"";vinLookupStatus.textContent="";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}equipmentModal.classList.add("open")}
+async function deleteEquipment(id){if(!canManageTeam())return alert("Only owners and managers can delete equipment.");if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
 function openVinFromNav(){
  if(!canEdit())return alert("Your role is view-only.");
  document.getElementById("vinChoiceModal").classList.add("open");
@@ -772,6 +782,7 @@ window.addEventListener("pagehide",stopVinScan);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopVinScan()});
 
 function quickAdd(){if(!canEdit())return alert("Your role is view-only.");
+ if(!assets.length)return openEquipment();
  const detailOpen=document.getElementById("detail")?.classList.contains("active");
  if(detailOpen && currentId){
    openEntry("maintenance",currentId);
@@ -780,6 +791,8 @@ function quickAdd(){if(!canEdit())return alert("Your role is view-only.");
  }
 }
 function openEntry(type,id){
+ if(!canEdit())return alert("Your role is view-only.");
+ if(!assets.length)return openEquipment();
  entryType.value=type||"maintenance";
  entryEquipment.innerHTML=assets.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");
  if(id)entryEquipment.value=id;
@@ -789,7 +802,10 @@ function openEntry(type,id){
  entryModal.classList.add("open")
 }
 async function saveEntry(){
+ if(!canEdit())return alert("Your role is view-only.");
  let aid=entryEquipment.value,type=entryType.value,cost=Number(entryCost.value||0),desc=entryDescription.value.trim()||type,date=entryDate.value||today(),notes=entryNotes.value.trim();
+ if(!assets.some(a=>a.id===aid))return alert("Choose equipment before saving a cost.");
+ if(!Number.isFinite(cost)||cost<0)return alert("Enter a valid cost of 0 or more.");
  try{
   if(type==="maintenance"){
    await sb("/rest/v1/maintenance_records",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,service_date:date,cost,notes:desc+(notes?" — "+notes:""),created_by:userId()})});
@@ -811,13 +827,14 @@ async function saveEntry(){
   closeModal("entryModal");await reloadCloud();openDetail(aid);
  }catch(e){alert(e.message)}
 }
-function openService(id){currentId=id;let a=assets.find(x=>x.id===id);serviceTitle.value="";serviceKind.value=a.current_mileage!=null?"miles":a.current_hours!=null?"hours":"date";serviceInterval.value="";serviceNext.value="";serviceDays.value=365;serviceDate.value=today();syncServiceFields();serviceModal.classList.add("open")}
+function openService(id){if(!canEdit())return alert("Your role is view-only.");currentId=id;let a=assets.find(x=>x.id===id);serviceTitle.value="";serviceKind.value=a.current_mileage!=null?"miles":a.current_hours!=null?"hours":"date";serviceInterval.value="";serviceNext.value="";serviceDays.value=365;serviceDate.value=today();syncServiceFields();serviceModal.classList.add("open")}
 function syncServiceFields(){let d=serviceKind.value==="date";serviceIntervalWrap.classList.toggle("hidden",d);serviceDateWrap.classList.toggle("hidden",!d)}
-async function saveService(){let title=serviceTitle.value.trim();if(!title)return alert("Enter a service name.");let kind=serviceKind.value,body={workspace_id:workspace.id,asset_id:currentId,title,active:true};if(kind==="date"){body.interval_days=Number(serviceDays.value||0)||null;body.next_due_date=serviceDate.value||null}else if(kind==="miles"){body.interval_miles=Number(serviceInterval.value||0)||null;body.next_due_mileage=Number(serviceNext.value||0)||null}else{body.interval_hours=Number(serviceInterval.value||0)||null;body.next_due_hours=Number(serviceNext.value||0)||null}try{await sb("/rest/v1/maintenance_schedules",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});closeModal("serviceModal");await reloadCloud();openDetail(currentId)}catch(e){alert(e.message)}}
-async function markOut(id){let reason=prompt("Reason for downtime (optional)","")||"";try{await sb("/rest/v1/downtime_events",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:id,started_at:new Date().toISOString(),reason,created_by:userId()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"down",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
-async function returnToService(id){let d=downtime.find(x=>x.asset_id===id&&!x.ended_at);if(!d)return;try{await sb("/rest/v1/downtime_events?id=eq."+d.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({ended_at:new Date().toISOString()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
+async function saveService(){if(!canEdit())return alert("Your role is view-only.");let title=serviceTitle.value.trim();if(!title)return alert("Enter a service name.");let kind=serviceKind.value,body={workspace_id:workspace.id,asset_id:currentId,title,active:true};if(kind==="date"){body.interval_days=Number(serviceDays.value||0)||null;body.next_due_date=serviceDate.value||null}else if(kind==="miles"){body.interval_miles=Number(serviceInterval.value||0)||null;body.next_due_mileage=Number(serviceNext.value||0)||null}else{body.interval_hours=Number(serviceInterval.value||0)||null;body.next_due_hours=Number(serviceNext.value||0)||null}try{await sb("/rest/v1/maintenance_schedules",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});closeModal("serviceModal");await reloadCloud();openDetail(currentId)}catch(e){alert(e.message)}}
+async function markOut(id){if(!canEdit())return alert("Your role is view-only.");let reason=prompt("Reason for downtime (optional)","")||"";try{await sb("/rest/v1/downtime_events",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:id,started_at:new Date().toISOString(),reason,created_by:userId()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"down",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
+async function returnToService(id){if(!canEdit())return alert("Your role is view-only.");let d=downtime.find(x=>x.asset_id===id&&!x.ended_at);if(!d)return;try{await sb("/rest/v1/downtime_events?id=eq."+d.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({ended_at:new Date().toISOString()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
 
 async function completeService(scheduleId){
+ if(!canEdit())return alert("Your role is view-only.");
  let s=schedules.find(x=>x.id===scheduleId);if(!s)return;
  let a=assets.find(x=>x.id===s.asset_id);if(!a)return;
  let costRaw=prompt(`Cost for ${s.title} (enter 0 if none)`,"0");if(costRaw===null)return;
@@ -844,9 +861,10 @@ function repairStatusText(s){
 }
 function repairCard(r){
  const a=assets.find(x=>x.id===r.asset_id);
- return `<div class="card"><div class="row"><div><div class="kicker">${repairStatusText(r.status)}</div><b>${esc(r.title)}</b><div class="tiny">${a?esc(a.name)+" · ":""}${(r.opened_at||"").slice(0,10)}${r.vendor?" · "+esc(r.vendor):""}</div></div><b>${money(r.cost)}</b></div><div style="height:10px"></div><div class="row"><button class="miniBtn" onclick="openDetail('${r.asset_id}')">View Asset</button>${r.status!=="completed"?`<button class="btn" onclick="completeRepair('${r.id}')">Complete Repair</button>`:""}</div></div>`
+ return `<div class="card"><div class="row"><div><div class="kicker">${repairStatusText(r.status)}</div><b>${esc(r.title)}</b><div class="tiny">${a?esc(a.name)+" · ":""}${(r.opened_at||"").slice(0,10)}${r.vendor?" · "+esc(r.vendor):""}</div></div><b>${money(r.cost)}</b></div><div style="height:10px"></div><div class="row"><button class="miniBtn" onclick="openDetail('${r.asset_id}')">View Asset</button>${canEdit()&&r.status!=="completed"?`<button class="btn" onclick="completeRepair('${r.id}')">Complete Repair</button>`:""}</div></div>`
 }
 async function completeRepair(id){
+ if(!canEdit())return alert("Your role is view-only.");
  const r=repairs.find(x=>x.id===id);if(!r)return;
  const aid=r.asset_id;
  try{
@@ -869,14 +887,14 @@ function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)retur
  ...repairs.filter(x=>x.asset_id===id).map(x=>({date:(x.opened_at||"").slice(0,10),type:"Repair",title:x.title,cost:x.cost})),
  ...expenses.filter(x=>x.asset_id===id).map(x=>({date:x.expense_date,type:"Expense",title:x.description||x.category,cost:x.amount}))
 ].sort((x,y)=>String(y.date).localeCompare(String(x.date)));
- detailContent.innerHTML=`<div class="row"><div><h1>${esc(a.name)}</h1><p class="${a.status}">${statusText(a.status)}</p></div><button class="miniBtn" onclick="editEquipment('${id}')">Edit</button></div><p class="sub">${[a.year,a.make,a.model].filter(Boolean).map(esc).join(" ")||esc(a.asset_type||"Equipment")} · ${assetMeter(a)}</p>
+ detailContent.innerHTML=`<div class="row"><div><h1>${esc(a.name)}</h1><p class="${a.status}">${statusText(a.status)}</p></div>${canEdit()?`<button class="miniBtn" onclick="editEquipment('${id}')">Edit</button>`:""}</div><p class="sub">${[a.year,a.make,a.model].filter(Boolean).map(esc).join(" ")||esc(a.asset_type||"Equipment")} · ${assetMeter(a)}</p>
  ${(a.vin||a.serial_number||a.purchase_date||a.notes)?`<div class="card">${a.vin?`<div class="row"><span class="muted">VIN</span><b>${esc(a.vin)}</b></div>`:""}${a.serial_number?`<div class="row"><span class="muted">Serial</span><b>${esc(a.serial_number)}</b></div>`:""}${a.purchase_date?`<div class="row"><span class="muted">Purchased</span><b>${a.purchase_date}</b></div>`:""}${a.notes?`<div class="divider"></div><div class="tiny">${esc(a.notes)}</div>`:""}</div>`:""}
- ${activeRepair?`<div class="notice"><div class="kicker">ACTIVE REPAIR · ${repairStatusText(activeRepair.status)}</div><b>${esc(activeRepair.title)}</b><div class="tiny">${activeRepair.vendor?esc(activeRepair.vendor)+" · ":""}${money(activeRepair.cost)}</div><br><button class="btn wide" onclick="completeRepair('${activeRepair.id}')">Complete Repair</button></div>`:""}${active?`<div class="notice"><b>Out of Service · ${downtimeDays(active)} day${downtimeDays(active)===1?"":"s"}</b><div class="tiny">${esc(active.reason||"No reason recorded")}</div><br><button class="btn wide" onclick="returnToService('${id}')">Return to Service</button></div>`:`<button class="btn secondary wide" onclick="markOut('${id}')">Mark Out of Service</button>`}
+ ${activeRepair?`<div class="notice"><div class="kicker">ACTIVE REPAIR · ${repairStatusText(activeRepair.status)}</div><b>${esc(activeRepair.title)}</b><div class="tiny">${activeRepair.vendor?esc(activeRepair.vendor)+" · ":""}${money(activeRepair.cost)}</div>${canEdit()?`<br><button class="btn wide" onclick="completeRepair('${activeRepair.id}')">Complete Repair</button>`:""}</div>`:""}${active?`<div class="notice"><b>Out of Service · ${downtimeDays(active)} day${downtimeDays(active)===1?"":"s"}</b><div class="tiny">${esc(active.reason||"No reason recorded")}</div>${canEdit()?`<br><button class="btn wide" onclick="returnToService('${id}')">Return to Service</button>`:""}</div>`:canEdit()?`<button class="btn secondary wide" onclick="markOut('${id}')">Mark Out of Service</button>`:""}
  <div class="heroCard"><div class="kicker">RECORDED COSTS</div><div class="money">${money(c.m+c.r+c.e)}</div><div class="metricGrid"><div class="metric"><span class="muted">Maintenance</span><b>${money(c.m)}</b></div><div class="metric"><span class="muted">Repairs</span><b>${money(c.r)}</b></div><div class="metric"><span class="muted">Other</span><b>${money(c.e)}</b></div><div class="metric"><span class="muted">Purchase</span><b>${money(a.purchase_cost)}</b></div></div></div>
- <h2>Maintenance Schedule</h2><button class="btn secondary wide" onclick="openService('${id}')">+ Add Schedule</button><div style="height:10px"></div>${sch.length?sch.map(s=>scheduleCard(s,true)).join(""):'<div class="empty">No scheduled maintenance yet.</div>'}
- <div class="row" style="margin-top:14px"><button class="btn" onclick="openEntry('maintenance','${id}')">+ Maintenance</button><button class="btn" onclick="openEntry('repair','${id}')">+ Repair</button></div><br><button class="btn secondary wide" onclick="openEntry('expense','${id}')">+ Other Expense</button>
+ <h2>Maintenance Schedule</h2>${canEdit()?`<button class="btn secondary wide" onclick="openService('${id}')">+ Add Schedule</button>`:""}<div style="height:10px"></div>${sch.length?sch.map(s=>scheduleCard(s,true)).join(""):'<div class="empty">No scheduled maintenance yet.</div>'}
+ ${canEdit()?`<div class="row" style="margin-top:14px"><button class="btn" onclick="openEntry('maintenance','${id}')">+ Maintenance</button><button class="btn" onclick="openEntry('repair','${id}')">+ Repair</button></div><br><button class="btn secondary wide" onclick="openEntry('expense','${id}')">+ Other Expense</button>`:""}
  <h2>History</h2>${hist.length?hist.map(x=>`<div class="card row"><div><b>${esc(x.title)}</b><div class="tiny">${x.date} · ${x.type}</div></div><b>${money(x.cost)}</b></div>`).join(""):'<div class="empty">No history yet.</div>'}
- <br><button class="btn danger wide" onclick="deleteEquipment('${id}')">Delete Equipment</button>`;
+ <br>${canManageTeam()?`<button class="btn danger wide" onclick="deleteEquipment('${id}')">Delete Equipment</button>`:""}`;
  show("detail");
 }
 function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,openRepairCount=repairs.filter(r=>r.status!=="completed").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Open repairs</span><b>${openRepairCount}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||'<div class="empty">Record costs to unlock reports.</div>'}`}
@@ -974,7 +992,7 @@ async function saveWorkspaceName(){
  }catch(e){alert(e.message)}
 }
 
-function syncProfile(){profileNameText.textContent=profile?.display_name||"Equipment Cost Book User";profileEmailText.textContent=authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profileRoleText.textContent=roleLabel(currentRole);profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase();workspaceNameInput.value=workspace?.name||"";syncPlanUI()}
+function syncProfile(){profileNameText.textContent=profile?.display_name||"Equipment Cost Book User";profileEmailText.textContent=session?.user?.email||authEmail.value||"Signed in";profileWorkspaceText.textContent=workspace?.name||"—";profileRoleText.textContent=roleLabel(currentRole);profilePlanText.textContent=String(entitlement?.plan||"free").toUpperCase();workspaceNameInput.value=workspace?.name||"";syncPlanUI()}
 
 
 window.addEventListener("error",(e)=>{
