@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" href="./icon-192.png" type="image/png">
-<title>Equipment Cost Book V4.9.6</title>
+<title>Equipment Cost Book V4.9.7</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -269,6 +269,19 @@ body:has(.modal.open){overflow:hidden}
 </div>
 </div></div>
 
+<div id="deleteModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle"><div class="modalBox">
+<button class="close" type="button" aria-label="Close dialog" onclick="closeModal('deleteModal')">✕</button>
+<h2 id="deleteModalTitle">Delete Equipment</h2>
+<p class="sub">Delete <b id="deleteAssetName"></b>?</p>
+<div class="notice overdue">This permanently removes the equipment and its maintenance, repairs, expenses, schedules, and downtime history. It cannot be undone.</div>
+<label style="display:flex;align-items:center;gap:12px"><input id="deleteAcknowledged" type="checkbox" style="width:20px;min-width:20px;min-height:20px;height:20px;flex:none">I understand these records will be deleted.</label>
+<div id="deleteFormMessage" class="formMessage tiny" role="alert"></div>
+<div class="metricGrid" style="margin-top:20px">
+<button class="btn secondary" type="button" onclick="closeModal('deleteModal')">Cancel</button>
+<button class="btn danger" type="button" onclick="saveOnce(this,saveDeletedEquipment)">Delete Equipment</button>
+</div>
+</div></div>
+
 <div id="vinChoiceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vinChoiceTitle"><div class="modalBox">
 <button class="close" aria-label="Close VIN options" onclick="closeModal('vinChoiceModal')">✕</button>
 <h2 id="vinChoiceTitle">Add or find a vehicle</h2>
@@ -401,6 +414,11 @@ const returnSummary=document.getElementById("returnSummary");
 const returnRepairNotice=document.getElementById("returnRepairNotice");
 let returnAssetId=null,returnSaving=false;
 const pendingReturnAssets=new Set();
+const deleteModal=document.getElementById("deleteModal");
+const deleteAssetName=document.getElementById("deleteAssetName");
+const deleteAcknowledged=document.getElementById("deleteAcknowledged");
+let deleteAssetId=null,deleteSaving=false;
+const pendingDeletedAssets=new Set();
 
 function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n||0))}
 function localDate(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
@@ -565,6 +583,7 @@ async function reloadCloud(){
  for(const id of pendingDowntimeAssets)if(downtime.some(x=>x.asset_id===id&&!x.ended_at))pendingDowntimeAssets.delete(id);
  for(const id of pendingReturnAssets)if(!downtime.some(x=>x.asset_id===id&&!x.ended_at))pendingReturnAssets.delete(id);
  for(const id of completingRepairs)if(repairs.some(x=>x.id===id&&x.status==="completed"))completingRepairs.delete(id);
+ for(const id of pendingDeletedAssets)if(!assets.some(x=>x.id===id))pendingDeletedAssets.delete(id);
  render();renderReports();syncProfile();renderTeam();renderActivity();
  syncPushStatus();
  if(pendingPushAsset){let target=pendingPushAsset;pendingPushAsset=null;if(assets.some(a=>a.id===target))openDetail(target);history.replaceState(null,"",location.pathname); }
@@ -872,7 +891,7 @@ function stopVinScan(){
 }
 
 function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";eqType.value="Truck";eqTracking.value="miles";syncMeterFields();eqVehicleType.value="";eqBodyClass.value="";eqEngineDescription.value="";vinLookupStatus.textContent="";vinLookupStatus.className="tiny";formMessage("equipment","");equipmentModal.classList.add("open")}
-function closeModal(id){if((id==="completionModal"&&completionSaving)||(id==="downtimeModal"&&downtimeSaving)||(id==="returnModal"&&returnSaving))return;document.getElementById(id).classList.remove("open")}
+function closeModal(id){if((id==="completionModal"&&completionSaving)||(id==="downtimeModal"&&downtimeSaving)||(id==="returnModal"&&returnSaving)||(id==="deleteModal"&&deleteSaving))return;document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
  if(!canEdit())return alert("Your role is view-only.");
  let name=eqName.value.trim();if(!name)return formMessage("equipment","Enter an equipment name.",eqName);
@@ -897,7 +916,31 @@ async function saveEquipment(){
  }catch(e){if(equipmentModal.classList.contains("open"))formMessage("equipment","Could not save equipment: "+e.message)}
 }
 function editEquipment(id){if(!canEdit())return alert("Your role is view-only.");let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqVehicleType.value=a.vehicle_type||"";eqBodyClass.value=a.body_class||"";eqEngineDescription.value=a.engine_description||"";vinLookupStatus.textContent="";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}syncMeterFields();formMessage("equipment","");equipmentModal.classList.add("open")}
-async function deleteEquipment(id){if(!canManageTeam())return alert("Only owners and managers can delete equipment.");if(!confirm("Delete this equipment and its related records?"))return;try{await sb("/rest/v1/assets?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});await reloadCloud();show("equipment")}catch(e){alert("Delete failed: "+e.message)}}
+function deleteEquipment(id){
+ if(!canManageTeam())return alert("Only owners and managers can delete equipment.");
+ const a=assets.find(x=>x.id===id);if(!a)return;
+ if(pendingDeletedAssets.has(id))return setCloudStatus("This equipment was deleted. Refresh to see the latest list.",true);
+ deleteAssetId=id;deleteAssetName.textContent=a.name;deleteAcknowledged.checked=false;
+ formMessage("delete","");deleteModal.classList.add("open");
+}
+async function saveDeletedEquipment(){
+ if(!canManageTeam()||deleteSaving)return;
+ const id=deleteAssetId;
+ if(!assets.some(x=>x.id===id)||pendingDeletedAssets.has(id))return formMessage("delete","This equipment is no longer available. Close and refresh.");
+ if(!deleteAcknowledged.checked)return formMessage("delete","Acknowledge the permanent deletion first.",deleteAcknowledged);
+ formMessage("delete","");deleteSaving=true;let deleted=false;
+ try{
+   const result=await sb("/rest/v1/assets?id=eq."+encodeURIComponent(id)+"&workspace_id=eq."+encodeURIComponent(workspace.id)+"&select=id",{method:"DELETE",headers:{Prefer:"return=representation"}});
+   if(!Array.isArray(result.data)||!result.data.some(x=>x.id===id))throw new Error("No equipment was deleted. Refresh and check your access.");
+   deleted=true;pendingDeletedAssets.add(id);deleteSaving=false;closeModal("deleteModal");deleteAssetId=null;
+   await reloadCloud();show("equipment");
+ }catch(e){
+   if(deleted){
+     deleteSaving=false;closeModal("deleteModal");deleteAssetId=null;
+     setCloudStatus("Equipment was deleted, but cloud refresh failed. Refresh to see the latest list.",true);
+   }else formMessage("delete","Could not delete equipment: "+e.message);
+ }finally{deleteSaving=false}
+}
 function openVinFromNav(){
  if(!canEdit())return alert("Your role is view-only.");
  document.getElementById("vinChoiceModal").classList.add("open");
