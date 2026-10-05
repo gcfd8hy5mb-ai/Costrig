@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" href="./icon-192.png" type="image/png">
-<title>Equipment Cost Book V4.9.5</title>
+<title>Equipment Cost Book V4.9.6</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -257,6 +257,18 @@ body:has(.modal.open){overflow:hidden}
 </div>
 </div></div>
 
+<div id="returnModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="returnModalTitle"><div class="modalBox">
+<button class="close" type="button" aria-label="Close dialog" onclick="closeModal('returnModal')">✕</button>
+<h2 id="returnModalTitle">Return to Service</h2>
+<p id="returnSummary" class="sub"></p>
+<div id="returnRepairNotice" class="notice hidden">This equipment still has an open repair. Return it only if it is ready to use.</div>
+<div id="returnFormMessage" class="formMessage tiny" role="alert"></div>
+<div class="metricGrid" style="margin-top:20px">
+<button class="btn secondary" type="button" onclick="closeModal('returnModal')">Cancel</button>
+<button class="btn" type="button" onclick="saveOnce(this,saveReturnToService)">Return to Service</button>
+</div>
+</div></div>
+
 <div id="vinChoiceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vinChoiceTitle"><div class="modalBox">
 <button class="close" aria-label="Close VIN options" onclick="closeModal('vinChoiceModal')">✕</button>
 <h2 id="vinChoiceTitle">Add or find a vehicle</h2>
@@ -384,6 +396,11 @@ const downtimeSummary=document.getElementById("downtimeSummary");
 const downtimeReason=document.getElementById("downtimeReason");
 let downtimeAssetId=null,downtimeSaving=false;
 const pendingDowntimeAssets=new Set();
+const returnModal=document.getElementById("returnModal");
+const returnSummary=document.getElementById("returnSummary");
+const returnRepairNotice=document.getElementById("returnRepairNotice");
+let returnAssetId=null,returnSaving=false;
+const pendingReturnAssets=new Set();
 
 function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n||0))}
 function localDate(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
@@ -545,6 +562,9 @@ async function reloadCloud(){
    sb("/rest/v1/activity_log?select=*&workspace_id=eq."+workspace.id+"&order=created_at.desc&limit=20")
  ]);
  profile=p.data?.[0]||null;entitlement=en.data?.[0]||{plan:"free"};assets=a.data||[];maintenance=m.data||[];repairs=r.data||[];expenses=e.data||[];schedules=s.data||[];downtime=d.data||[];teamMembers=tm.data||[];activityItems=act.data||[];
+ for(const id of pendingDowntimeAssets)if(downtime.some(x=>x.asset_id===id&&!x.ended_at))pendingDowntimeAssets.delete(id);
+ for(const id of pendingReturnAssets)if(!downtime.some(x=>x.asset_id===id&&!x.ended_at))pendingReturnAssets.delete(id);
+ for(const id of completingRepairs)if(repairs.some(x=>x.id===id&&x.status==="completed"))completingRepairs.delete(id);
  render();renderReports();syncProfile();renderTeam();renderActivity();
  syncPushStatus();
  if(pendingPushAsset){let target=pendingPushAsset;pendingPushAsset=null;if(assets.some(a=>a.id===target))openDetail(target);history.replaceState(null,"",location.pathname); }
@@ -852,7 +872,7 @@ function stopVinScan(){
 }
 
 function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";eqType.value="Truck";eqTracking.value="miles";syncMeterFields();eqVehicleType.value="";eqBodyClass.value="";eqEngineDescription.value="";vinLookupStatus.textContent="";vinLookupStatus.className="tiny";formMessage("equipment","");equipmentModal.classList.add("open")}
-function closeModal(id){if((id==="completionModal"&&completionSaving)||(id==="downtimeModal"&&downtimeSaving))return;document.getElementById(id).classList.remove("open")}
+function closeModal(id){if((id==="completionModal"&&completionSaving)||(id==="downtimeModal"&&downtimeSaving)||(id==="returnModal"&&returnSaving))return;document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
  if(!canEdit())return alert("Your role is view-only.");
  let name=eqName.value.trim();if(!name)return formMessage("equipment","Enter an equipment name.",eqName);
@@ -1015,7 +1035,34 @@ async function saveDowntime(){
    }else formMessage("downtime","Could not mark out of service: "+e.message);
  }finally{downtimeSaving=false}
 }
-async function returnToService(id){if(!canEdit())return alert("Your role is view-only.");let d=downtime.find(x=>x.asset_id===id&&!x.ended_at);if(!d)return;try{await sb("/rest/v1/downtime_events?id=eq."+d.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({ended_at:new Date().toISOString()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
+function returnToService(id){
+ if(!canEdit())return alert("Your role is view-only.");
+ const a=assets.find(x=>x.id===id),d=downtime.find(x=>x.asset_id===id&&!x.ended_at);
+ if(!a||!d)return;
+ if(pendingReturnAssets.has(id))return setCloudStatus("The return was already recorded. Refresh and review this equipment before trying again.",true);
+ returnAssetId=id;
+ returnSummary.textContent=`${a.name}${d.reason?" · "+d.reason:""}`;
+ returnRepairNotice.classList.toggle("hidden",!repairs.some(x=>x.asset_id===id&&x.status!=="completed"));
+ formMessage("return","");returnModal.classList.add("open");
+}
+async function saveReturnToService(){
+ if(!canEdit()||returnSaving)return;
+ const id=returnAssetId,d=downtime.find(x=>x.asset_id===id&&!x.ended_at);
+ if(!d||pendingReturnAssets.has(id))return formMessage("return","This downtime has already changed. Close and refresh.");
+ formMessage("return","");let ended=false,updated=false;returnSaving=true;
+ try{
+   await sb("/rest/v1/downtime_events?id=eq."+d.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({ended_at:new Date().toISOString()})});
+   ended=true;pendingReturnAssets.add(id);
+   await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});
+   updated=true;returnSaving=false;closeModal("returnModal");returnAssetId=null;
+   await reloadCloud();pendingReturnAssets.delete(id);openDetail(id);
+ }catch(e){
+   if(ended){
+     returnSaving=false;closeModal("returnModal");returnAssetId=null;
+     setCloudStatus(updated?"Return was saved, but cloud refresh failed. Refresh to see the latest data.":"Downtime ended, but equipment status did not update. Refresh and review it before trying again.",true);
+   }else formMessage("return","Could not return to service: "+e.message);
+ }finally{returnSaving=false}
+}
 
 function completeService(scheduleId){
  if(!canEdit())return alert("Your role is view-only.");
@@ -1070,19 +1117,20 @@ function repairCard(r){
  const a=assets.find(x=>x.id===r.asset_id);
  return `<div class="card"><div class="row"><div><div class="kicker">${repairStatusText(r.status)}</div><b>${esc(r.title)}</b><div class="tiny">${a?esc(a.name)+" · ":""}${(r.opened_at||"").slice(0,10)}${r.vendor?" · "+esc(r.vendor):""}</div></div><b>${money(r.cost)}</b></div><div style="height:10px"></div><div class="row"><button class="miniBtn" onclick="openDetail('${r.asset_id}')">View Asset</button>${canEdit()&&r.status!=="completed"?`<button class="btn" onclick="completeRepair('${r.id}')">Complete Repair</button>`:""}</div></div>`
 }
+const completingRepairs=new Set();
 async function completeRepair(id){
  if(!canEdit())return alert("Your role is view-only.");
  const r=repairs.find(x=>x.id===id);if(!r)return;
+ if(completingRepairs.has(id))return;
  const aid=r.asset_id;
+ completingRepairs.add(id);let saved=false;
  try{
    await sb("/rest/v1/repairs?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"completed",completed_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
-   const active=downtime.find(x=>x.asset_id===aid&&!x.ended_at);
-   if(active){
-     await sb("/rest/v1/downtime_events?id=eq."+active.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({ended_at:new Date().toISOString()})});
-     await sb("/rest/v1/assets?id=eq."+aid,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});
-   }
-   await reloadCloud();openDetail(aid);
- }catch(e){alert(e.message)}
+   saved=true;await reloadCloud();completingRepairs.delete(id);openDetail(aid);
+ }catch(e){
+   if(!saved)completingRepairs.delete(id);
+   setCloudStatus(saved?"Repair was completed, but cloud refresh failed. Refresh before trying again.":"Could not complete repair: "+e.message,true);
+ }
 }
 function downtimeDays(d){
  let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();
