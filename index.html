@@ -11,10 +11,10 @@
 <div class="boot"><div><b>Equipment Cost Book</b><br><small>Loading…</small></div></div>
 <script>
 (async()=>{
-  const response=await fetch('./app-core-v4.9.7.html?v=4.9.8');
+  const response=await fetch('./app-core-v4.9.7.html?v=4.9.8b',{cache:'no-store'});
   if(!response.ok)throw new Error('Could not load Equipment Cost Book.');
   let html=await response.text();
-  const patch='<script src="./edit-history-v4.9.8.js?v=4.9.8"><\\/script>';
+  const patch='<script src="./edit-history-v4.9.8.js?v=4.9.8b"></scr'+'ipt>';
   html=html.replace('</body>',patch+'</body>');
   document.open();
   document.write(html);
