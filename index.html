@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" href="./icon-192.png" type="image/png">
-<title>Equipment Cost Book V4.9.4</title>
+<title>Equipment Cost Book V4.9.5</title>
 <style>
 :root{--bg:#0F172A;--card:#2B333D;--card2:#333D48;--line:#465260;--text:#F7F9FC;--muted:#9CA3AF;--orange:#3E526F;--green:#22C55E;--yellow:#F59E0B;--red:#EF4444}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -244,6 +244,19 @@ body:has(.modal.open){overflow:hidden}
 </div>
 </div></div>
 
+<div id="downtimeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="downtimeModalTitle"><div class="modalBox">
+<button class="close" type="button" aria-label="Close dialog" onclick="closeModal('downtimeModal')">✕</button>
+<h2 id="downtimeModalTitle">Mark Out of Service</h2>
+<p id="downtimeSummary" class="sub"></p>
+<label for="downtimeReason">Reason <span class="muted">(optional)</span></label>
+<textarea id="downtimeReason" placeholder="What happened or what needs repair?"></textarea>
+<div id="downtimeFormMessage" class="formMessage tiny" role="alert"></div>
+<div class="metricGrid" style="margin-top:20px">
+<button class="btn secondary" type="button" onclick="closeModal('downtimeModal')">Cancel</button>
+<button class="btn" type="button" onclick="saveOnce(this,saveDowntime)">Mark Out of Service</button>
+</div>
+</div></div>
+
 <div id="vinChoiceModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vinChoiceTitle"><div class="modalBox">
 <button class="close" aria-label="Close VIN options" onclick="closeModal('vinChoiceModal')">✕</button>
 <h2 id="vinChoiceTitle">Add or find a vehicle</h2>
@@ -366,6 +379,11 @@ const completionDate=document.getElementById("completionDate");
 const completionCost=document.getElementById("completionCost");
 const completionNotes=document.getElementById("completionNotes");
 let completingScheduleId=null,completionSaving=false;
+const downtimeModal=document.getElementById("downtimeModal");
+const downtimeSummary=document.getElementById("downtimeSummary");
+const downtimeReason=document.getElementById("downtimeReason");
+let downtimeAssetId=null,downtimeSaving=false;
+const pendingDowntimeAssets=new Set();
 
 function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n||0))}
 function localDate(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
@@ -834,7 +852,7 @@ function stopVinScan(){
 }
 
 function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";eqType.value="Truck";eqTracking.value="miles";syncMeterFields();eqVehicleType.value="";eqBodyClass.value="";eqEngineDescription.value="";vinLookupStatus.textContent="";vinLookupStatus.className="tiny";formMessage("equipment","");equipmentModal.classList.add("open")}
-function closeModal(id){if(id==="completionModal"&&completionSaving)return;document.getElementById(id).classList.remove("open")}
+function closeModal(id){if((id==="completionModal"&&completionSaving)||(id==="downtimeModal"&&downtimeSaving))return;document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
  if(!canEdit())return alert("Your role is view-only.");
  let name=eqName.value.trim();if(!name)return formMessage("equipment","Enter an equipment name.",eqName);
@@ -968,7 +986,35 @@ async function saveService(){
    await reloadCloud();openDetail(currentId);
  }catch(e){if(serviceModal.classList.contains("open"))formMessage("service","Could not save schedule: "+e.message)}
 }
-async function markOut(id){if(!canEdit())return alert("Your role is view-only.");let reason=prompt("Reason for downtime (optional)","")||"";try{await sb("/rest/v1/downtime_events",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:id,started_at:new Date().toISOString(),reason,created_by:userId()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"down",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
+function markOut(id){
+ if(!canEdit())return alert("Your role is view-only.");
+ const a=assets.find(x=>x.id===id);if(!a)return;
+ if(pendingDowntimeAssets.has(id))return setCloudStatus("Downtime was already recorded. Refresh and review this equipment before trying again.",true);
+ if(downtime.some(x=>x.asset_id===id&&!x.ended_at))return openDetail(id);
+ downtimeAssetId=id;downtimeSummary.textContent=a.name;
+ downtimeReason.value="";formMessage("downtime","");
+ downtimeModal.classList.add("open");
+}
+async function saveDowntime(){
+ if(!canEdit()||downtimeSaving)return;
+ const id=downtimeAssetId;
+ if(!assets.some(x=>x.id===id))return formMessage("downtime","This equipment is no longer available. Close and refresh.");
+ if(pendingDowntimeAssets.has(id)||downtime.some(x=>x.asset_id===id&&!x.ended_at))return formMessage("downtime","An active downtime record already exists. Close and refresh.");
+ const reason=downtimeReason.value.trim();formMessage("downtime","");
+ let recorded=false,updated=false;downtimeSaving=true;
+ try{
+   await sb("/rest/v1/downtime_events",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:id,started_at:new Date().toISOString(),reason,created_by:userId()})});
+   recorded=true;pendingDowntimeAssets.add(id);
+   await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"down",updated_at:new Date().toISOString()})});
+   updated=true;downtimeSaving=false;closeModal("downtimeModal");downtimeAssetId=null;
+   await reloadCloud();pendingDowntimeAssets.delete(id);openDetail(id);
+ }catch(e){
+   if(recorded){
+     downtimeSaving=false;closeModal("downtimeModal");downtimeAssetId=null;
+     setCloudStatus(updated?"Downtime was saved, but cloud refresh failed. Refresh to see the latest data.":"Downtime was recorded, but equipment status did not update. Refresh and review it before trying again.",true);
+   }else formMessage("downtime","Could not mark out of service: "+e.message);
+ }finally{downtimeSaving=false}
+}
 async function returnToService(id){if(!canEdit())return alert("Your role is view-only.");let d=downtime.find(x=>x.asset_id===id&&!x.ended_at);if(!d)return;try{await sb("/rest/v1/downtime_events?id=eq."+d.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({ended_at:new Date().toISOString()})});await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});await reloadCloud();openDetail(id)}catch(e){alert(e.message)}}
 
 function completeService(scheduleId){
