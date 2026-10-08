@@ -11,6 +11,9 @@ Candidate: V4.9.10. Runtime filenames are retained to avoid replacing the existi
 
 - Renew sessions before API requests when expiry is within 60 seconds. Share concurrent refresh requests; do not restore an old account after sign-out/account change. Failed refreshes prevent writes.
 - Correct the version label that the edit-history patch reset to V4.9.8.
+- Preserve cents in displayed currency. Live $10.50 maintenance displayed as $11; the edit form confirmed the exact stored amount.
+- Preserve a newer navigation choice while a save/refresh is completing. Live service completion could override a Reports click with equipment details.
+- Add the missing Free gate to Pro reports. Live Free beta accounts could still view the reports advertised as Pro.
 - Accept `technician` workspace membership and `waiting_parts` repair status, which the UI already offers. Retain all previously permitted values.
 - Block direct client writes to membership and invitation tables. Existing checked RPCs perform these operations. This closes direct owner-invitation and role-write bypasses.
 - Refuse owner demotion via the role RPC. Serialize invite acceptance, reject owner invitations, and preserve existing memberships rather than letting invitations change roles.
@@ -23,7 +26,7 @@ Database migration `release_workspace_integrity` was applied to CostRig and its 
 
 | Check | Result |
 | --- | --- |
-| Eight local regression cases | Passed: unexpired session, concurrent refresh, failed refresh/recovery, sign-out during refresh, account change during refresh, non-replayed rejected writes, equipment-specific cost totals, meter schedule boundaries |
+| Eleven local regression cases | Passed: currency precision, navigation preservation, Free reports gate, unexpired session, concurrent refresh, failed refresh/recovery, sign-out during refresh, account change during refresh, non-replayed rejected writes, equipment-specific cost totals, meter schedule boundaries |
 | Affected syntax/assets/manifest smoke suite | Passed |
 | Diff whitespace check | Passed |
 | Public tables with RLS disabled | Zero, verified from database catalog |
@@ -38,6 +41,22 @@ Database migration `release_workspace_integrity` was applied to CostRig and its 
 Reminder infrastructure has recent HTTP 200 responses, but also two responses without an HTTP status in the inspected 24-hour window. Successful cron SQL execution alone does not prove notification delivery. No notification was sent during this audit.
 
 ## Required before merge/release
+
+### Live owner-account checks completed after secure sign-in
+
+These checks used the production V4.9.9 frontend (which displays V4.9.8 because of the version-label bug), with the newly hardened database. They do not prove the unmerged V4.9.10 frontend changes work in a browser.
+
+- Email/password sign-in loaded the owner's workspace. Reload renewed/restored the session and preserved saved equipment/history.
+- Created `Release QA 2026-10-08` without modifying pre-existing equipment. Required-name and negative-cost validation passed. Edited mileage from 1,000 to 1,250 and make to QA Make; saved values appeared in details.
+- Created $10.50 maintenance and edited it to $12.25; edited notes persisted without a duplicate record.
+- Created a $20.25 Waiting on Parts repair; edited it to $21.25/In Progress and completed it. The active repair disappeared and history remained.
+- Created a $3.25 other expense. QA costs total $36.75 (maintenance $12.25 + repair $21.25 + expense $3.25); live whole-dollar display rounds this to $37. The candidate formatter fixes that display.
+- Created and completed a recurring 500-mile schedule at 1,250 miles; next due advanced to 1,750 miles. Created and completed a one-time date schedule; it disappeared from active schedules and remained in history.
+- Home, Equipment, Reports, Profile, plan controls, VIN choice, manual entry, and tested modal controls opened. Invalid VIN lookup was rejected; public sample VIN `1HGCM82633A004352` decoded to Honda Accord/2003 with vehicle/engine fields. The sample was not saved.
+- Free/Pro beta switching persisted, retained history, and gated Activity correctly. The missing Free report gate was confirmed and fixed in the candidate. Original Pro beta plan was restored.
+- Delete dialog named equipment and related records. An unchecked acknowledgment blocked deletion. Actual permanent deletion was not performed.
+
+The QA fixture and its test history remain intentionally for subsequent account-isolation/deletion checks. Notifications are blocked in the cloud browser; physical iPhone Home Screen subscription and delivery testing are required. No iPhone camera, layout, or push-delivery result is claimed.
 
 Use real authenticated accounts and publishable/anon API access only for isolation tests. Do not use database impersonation, service-role credentials, or administrative SQL to claim these tests passed.
 
@@ -58,4 +77,4 @@ Use real authenticated accounts and publishable/anon API access only for isolati
 - Six authenticated SECURITY DEFINER workspace RPC advisories remain because the app intentionally calls these authorization-checked functions. Their authenticated integration tests remain pending.
 - `date_push_deliveries` intentionally has RLS and no client policies, keeping delivery bookkeeping server-only. Do not add client policies merely to remove an informational advisor notice.
 
-The sign-in screen blocks the remaining live functional audit. Preserve completed evidence and rerun only checks affected by subsequent fixes.
+Only the owner account has been signed in. A separate authenticated account, direct API isolation/role tests, candidate browser validation, and physical-device checks remain. Preserve completed evidence and rerun only checks affected by subsequent fixes.

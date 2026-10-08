@@ -19,9 +19,37 @@ function response(data, status = 200) {
   return { ok: status < 400, status, headers: {}, json: async () => data, text: async () => JSON.stringify(data) };
 }
 let count = 0;
-async function check(name, action) { await action(); count++; console.log('PASS', name); }
+async function check(name, action) {
+  if(process.argv[2]&&!name.includes(process.argv[2]))return;
+  await action(); count++; console.log('PASS', name);
+}
 (async () => {
   const now = Math.floor(Date.now() / 1000);
+  await check('Free report gate does not render Pro equipment rankings', async () => {
+    const c = vm.createContext({});
+    vm.runInContext('const workspace={id:"test"}; const reportsContent={innerHTML:""}; function isPro(){return false}', c);
+    vm.runInContext(section('function renderReports(', 'function isPro('), c);
+    vm.runInContext('renderReports()', c);
+    assert.match(vm.runInContext('reportsContent.innerHTML', c), /Advanced reports are a Pro feature/);
+    assert.match(vm.runInContext('reportsContent.innerHTML', c), /View Pro/);
+  });
+  await check('save completion preserves newer navigation and otherwise opens saved details', async () => {
+    const c = vm.createContext({});
+    vm.runInContext('let navigationRevision=3; let opened=0;', c);
+    vm.runInContext(section('function restoreAfterSave(', 'function show('), c);
+    vm.runInContext('restoreAfterSave(3,()=>opened++)', c);
+    assert.equal(vm.runInContext('opened', c), 1);
+    vm.runInContext('navigationRevision++; restoreAfterSave(3,()=>opened++)', c);
+    assert.equal(vm.runInContext('opened', c), 1);
+  });
+  await check('currency displays cents instead of rounding recorded expenses to dollars', async () => {
+    const c = vm.createContext({ Intl, Number });
+    vm.runInContext(section('function money(', 'function localDate('), c);
+    assert.equal(vm.runInContext('money(10.50)', c), '$10.50');
+    assert.equal(vm.runInContext('money(0.25)', c), '$0.25');
+    assert.equal(vm.runInContext('money(36.75)', c), '$36.75');
+    assert.equal(vm.runInContext('money(0)', c), '$0.00');
+  });
   await check('unexpired sessions do not refresh', async () => {
     let calls = 0;
     const c = context({ access_token: token(now + 3600), refresh_token: 'refresh-a' }, async url => {

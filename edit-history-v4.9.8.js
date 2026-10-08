@@ -70,6 +70,7 @@
   window.saveEntry = async function(){
     if(!editingEntryPatch)return originalSaveEntry();
     if(!canEdit())return alert('Your role is view-only.');
+    const navigationAtStart=navigationRevision;
 
     const aid=entryEquipment.value;
     const type=entryType.value;
@@ -116,7 +117,7 @@
       resetEditState();
       closeModal('entryModal');
       await reloadCloud();
-      openDetail(aid);
+      restoreAfterSave(navigationAtStart,()=>openDetail(aid));
     }catch(e){
       formMessage('entry','Could not save changes: '+e.message);
     }
