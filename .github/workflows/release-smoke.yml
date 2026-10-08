@@ -1,0 +1,16 @@
+name: Release smoke checks
+on:
+  push:
+    branches: [main, release-readiness-smoke-20261007]
+  pull_request:
+    branches: [main]
+jobs:
+  static-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate release static assets and JavaScript
+        run: node tests/release-smoke.cjs
