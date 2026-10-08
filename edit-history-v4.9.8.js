@@ -152,7 +152,7 @@
     show('detail');
   };
 
-  document.title='Equipment Cost Book V4.9.8';
+  document.title='Equipment Cost Book V4.9.10';
   const version=document.querySelector('.versionNote');
-  if(version)version.textContent='Equipment Cost Book · V4.9.8';
+  if(version)version.textContent='Equipment Cost Book · V4.9.10';
 })();

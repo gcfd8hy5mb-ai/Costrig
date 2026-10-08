@@ -457,7 +457,20 @@ async function saveOnce(button,action){
  try{await action()}finally{button.disabled=false;button.textContent=label}
 }
 function authHeaders(json=true){let h={apikey:SB_KEY};if(session?.access_token)h.Authorization="Bearer "+session.access_token;if(json)h["Content-Type"]="application/json";return h}
-async function sb(path,opts={}){let r=await fetch(SB_URL+path,{...opts,headers:{...authHeaders(!(opts.body instanceof FormData)),...(opts.headers||{})}});let txt=await r.text();let data=txt?(()=>{try{return JSON.parse(txt)}catch{return txt}})():null;if(!r.ok)throw new Error(data?.message||data?.error_description||data?.hint||data?.details||String(data||r.status));return {data,headers:r.headers,status:r.status}}
+function sessionExpiresSoon(){
+ try{
+   const payload=JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+   return !Number.isFinite(payload.exp)||payload.exp*1000<=Date.now()+60000;
+ }catch{return true}
+}
+async function sb(path,opts={}){
+ if(session?.access_token&&sessionExpiresSoon()&&!await refreshSessionIfNeeded())
+   throw new Error('Your session could not be refreshed. Check your connection or sign in again.');
+ let r=await fetch(SB_URL+path,{...opts,headers:{...authHeaders(!(opts.body instanceof FormData)),...(opts.headers||{})}});
+ let txt=await r.text();let data=txt?(()=>{try{return JSON.parse(txt)}catch{return txt}})():null;
+ if(!r.ok)throw new Error(data?.message||data?.error_description||data?.hint||data?.details||String(data||r.status));
+ return {data,headers:r.headers,status:r.status};
+}
 function saveSession(){if(session)localStorage.setItem("costrig_session",JSON.stringify(session));else localStorage.removeItem("costrig_session")}
 function setAuthMode(mode){authMode=mode;document.getElementById("signInTab").classList.toggle("active",mode==="signin");document.getElementById("signUpTab").classList.toggle("active",mode==="signup");document.getElementById("signupFields").classList.toggle("hidden",mode!=="signup");document.getElementById("authSubmit").textContent=mode==="signin"?"Sign In":"Create Account";document.getElementById("authMessage").textContent=""}
 async function submitAuth(){
@@ -523,9 +536,20 @@ async function bootstrapWorkspace(name,displayName){
  }
 }
 function userId(){try{return JSON.parse(atob(session.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub}catch{return null}}
+let sessionRefreshPromise=null;
 async function refreshSessionIfNeeded(){
  if(!session?.refresh_token)return false;
- try{let r=await fetch(SB_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:authHeaders(),body:JSON.stringify({refresh_token:session.refresh_token})});let d=await r.json();if(!r.ok)return false;session=d;saveSession();return true}catch{return false}
+ if(sessionRefreshPromise)return sessionRefreshPromise;
+ const previous=session;
+ sessionRefreshPromise=(async()=>{
+   try{
+     const r=await fetch(SB_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:authHeaders(),body:JSON.stringify({refresh_token:previous.refresh_token})});
+     const d=await r.json();
+     if(!r.ok||!d.access_token||session!==previous)return false;
+     session=d;saveSession();return true;
+   }catch{return false}
+ })();
+ try{return await sessionRefreshPromise}finally{sessionRefreshPromise=null}
 }
 async function init(){
  try{session=JSON.parse(localStorage.getItem("costrig_session")||"null")}catch{session=null;saveSession()}
