@@ -14,3 +14,5 @@ jobs:
           node-version: '22'
       - name: Validate release static assets and JavaScript
         run: node tests/release-smoke.cjs
+      - name: Validate session renewal and calculation regressions
+        run: node tests/release-regression.cjs

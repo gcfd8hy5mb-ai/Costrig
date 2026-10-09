@@ -420,7 +420,7 @@ const deleteAcknowledged=document.getElementById("deleteAcknowledged");
 let deleteAssetId=null,deleteSaving=false;
 const pendingDeletedAssets=new Set();
 
-function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(n||0))}
+function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(n||0))}
 function localDate(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
 function today(){return localDate(new Date())}
 function calendarDay(dateText){let [year,month,day]=dateText.split("-").map(Number);return Date.UTC(year,month-1,day)/86400000}
@@ -464,7 +464,20 @@ async function saveOnce(button,action){
  try{await action()}finally{button.disabled=false;button.textContent=label}
 }
 function authHeaders(json=true){let h={apikey:SB_KEY};if(session?.access_token)h.Authorization="Bearer "+session.access_token;if(json)h["Content-Type"]="application/json";return h}
-async function sb(path,opts={}){let r=await fetch(SB_URL+path,{...opts,headers:{...authHeaders(!(opts.body instanceof FormData)),...(opts.headers||{})}});let txt=await r.text();let data=txt?(()=>{try{return JSON.parse(txt)}catch{return txt}})():null;if(!r.ok)throw new Error(data?.message||data?.error_description||data?.hint||data?.details||String(data||r.status));return {data,headers:r.headers,status:r.status}}
+function sessionExpiresSoon(){
+ try{
+   const payload=JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+   return !Number.isFinite(payload.exp)||payload.exp*1000<=Date.now()+60000;
+ }catch{return true}
+}
+async function sb(path,opts={}){
+ if(session?.access_token&&sessionExpiresSoon()&&!await refreshSessionIfNeeded())
+   throw new Error('Your session could not be refreshed. Check your connection or sign in again.');
+ let r=await fetch(SB_URL+path,{...opts,headers:{...authHeaders(!(opts.body instanceof FormData)),...(opts.headers||{})}});
+ let txt=await r.text();let data=txt?(()=>{try{return JSON.parse(txt)}catch{return txt}})():null;
+ if(!r.ok)throw new Error(data?.message||data?.error_description||data?.hint||data?.details||String(data||r.status));
+ return {data,headers:r.headers,status:r.status};
+}
 function saveSession(){if(session)localStorage.setItem("costrig_session",JSON.stringify(session));else localStorage.removeItem("costrig_session")}
 function setAuthMode(mode){authMode=mode;document.getElementById("signInTab").classList.toggle("active",mode==="signin");document.getElementById("signUpTab").classList.toggle("active",mode==="signup");document.getElementById("signupFields").classList.toggle("hidden",mode!=="signup");document.getElementById("authSubmit").textContent=mode==="signin"?"Sign In":"Create Account";document.getElementById("authMessage").textContent=""}
 async function submitAuth(){
@@ -530,9 +543,20 @@ async function bootstrapWorkspace(name,displayName){
  }
 }
 function userId(){try{return JSON.parse(atob(session.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub}catch{return null}}
+let sessionRefreshPromise=null;
 async function refreshSessionIfNeeded(){
  if(!session?.refresh_token)return false;
- try{let r=await fetch(SB_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:authHeaders(),body:JSON.stringify({refresh_token:session.refresh_token})});let d=await r.json();if(!r.ok)return false;session=d;saveSession();return true}catch{return false}
+ if(sessionRefreshPromise)return sessionRefreshPromise;
+ const previous=session;
+ sessionRefreshPromise=(async()=>{
+   try{
+     const r=await fetch(SB_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:authHeaders(),body:JSON.stringify({refresh_token:previous.refresh_token})});
+     const d=await r.json();
+     if(!r.ok||!d.access_token||session!==previous)return false;
+     session=d;saveSession();return true;
+   }catch{return false}
+ })();
+ try{return await sessionRefreshPromise}finally{sessionRefreshPromise=null}
 }
 async function init(){
  try{session=JSON.parse(localStorage.getItem("costrig_session")||"null")}catch{session=null;saveSession()}
@@ -730,7 +754,9 @@ function render(){
  workspaceLabel.textContent=workspace?workspace.name:"";
  let h=new Date().getHours();homeGreeting.textContent=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
 }
-function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>{let active=x.dataset.screen===(id==="detail"?"equipment":id);x.classList.toggle("active",active);if(x.dataset.screen)x.setAttribute("aria-current",active?"page":"false")});if(id==="reports")renderReports();if(id==="profile")syncPushStatus();scrollTo({top:0,behavior:"auto"})}
+let navigationRevision=0;
+function restoreAfterSave(revision,action){if(revision===navigationRevision)action()}
+function show(id){navigationRevision++;document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(x=>{let active=x.dataset.screen===(id==="detail"?"equipment":id);x.classList.toggle("active",active);if(x.dataset.screen)x.setAttribute("aria-current",active?"page":"false")});if(id==="reports")renderReports();if(id==="profile")syncPushStatus();scrollTo({top:0,behavior:"auto"})}
 
 function normalizeVin(v){
  return String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/[IOQ]/g,"");
@@ -901,6 +927,7 @@ function openEquipment(){if(!canEdit())return alert("Your role is view-only.");e
 function closeModal(id){if((id==="completionModal"&&completionSaving)||(id==="downtimeModal"&&downtimeSaving)||(id==="returnModal"&&returnSaving)||(id==="deleteModal"&&deleteSaving))return;document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
  if(!canEdit())return alert("Your role is view-only.");
+ const navigationAtStart=navigationRevision;
  let name=eqName.value.trim();if(!name)return formMessage("equipment","Enter an equipment name.",eqName);
  if(!eqType.value)return formMessage("equipment","Select an equipment type.",eqType);
  if(eqTracking.value!=="none"&&(eqMeter.value===""||!Number.isFinite(Number(eqMeter.value))||Number(eqMeter.value)<0))
@@ -920,7 +947,7 @@ async function saveEquipment(){
  try{
    if(editingId)await sb("/rest/v1/assets?id=eq."+editingId,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});
    else await sb("/rest/v1/assets",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});
-   closeModal("equipmentModal");let id=editingId;await reloadCloud();if(id)openDetail(id);else show("equipment");
+   closeModal("equipmentModal");let id=editingId;await reloadCloud();restoreAfterSave(navigationAtStart,()=>{if(id)openDetail(id);else show("equipment")});
  }catch(e){if(equipmentModal.classList.contains("open"))formMessage("equipment","Could not save equipment: "+e.message)}
 }
 function editEquipment(id){if(!canEdit())return alert("Your role is view-only.");let a=assets.find(x=>x.id===id);if(!a)return;editingId=id;equipmentModalTitle.textContent="Edit Equipment";eqName.value=a.name;eqType.value=a.asset_type||"Other";eqStatus.value=a.status;eqPrice.value=a.purchase_cost||0;eqPurchaseDate.value=a.purchase_date||"";eqYear.value=a.year||"";eqMake.value=a.make||"";eqModel.value=a.model||"";eqSerial.value=a.serial_number||"";eqVin.value=a.vin||"";eqVehicleType.value=a.vehicle_type||"";eqBodyClass.value=a.body_class||"";eqEngineDescription.value=a.engine_description||"";vinLookupStatus.textContent="";eqNotes.value=a.notes||"";if(a.current_mileage!=null){eqTracking.value="miles";eqMeter.value=a.current_mileage}else if(a.current_hours!=null){eqTracking.value="hours";eqMeter.value=a.current_hours}else{eqTracking.value="none";eqMeter.value=0}syncMeterFields();formMessage("equipment","");equipmentModal.classList.add("open")}
@@ -933,6 +960,7 @@ function deleteEquipment(id){
 }
 async function saveDeletedEquipment(){
  if(!canManageTeam()||deleteSaving)return;
+ const navigationAtStart=navigationRevision;
  const id=deleteAssetId;
  if(!assets.some(x=>x.id===id)||pendingDeletedAssets.has(id))return formMessage("delete","This equipment is no longer available. Close and refresh.");
  if(!deleteAcknowledged.checked)return formMessage("delete","Acknowledge the permanent deletion first.",deleteAcknowledged);
@@ -941,7 +969,7 @@ async function saveDeletedEquipment(){
    const result=await sb("/rest/v1/assets?id=eq."+encodeURIComponent(id)+"&workspace_id=eq."+encodeURIComponent(workspace.id)+"&select=id",{method:"DELETE",headers:{Prefer:"return=representation"}});
    if(!Array.isArray(result.data)||!result.data.some(x=>x.id===id))throw new Error("No equipment was deleted. Refresh and check your access.");
    deleted=true;pendingDeletedAssets.add(id);deleteSaving=false;closeModal("deleteModal");deleteAssetId=null;
-   await reloadCloud();show("equipment");
+   await reloadCloud();restoreAfterSave(navigationAtStart,()=>show("equipment"));
  }catch(e){
    if(deleted){
      deleteSaving=false;closeModal("deleteModal");deleteAssetId=null;
@@ -995,6 +1023,7 @@ function openEntry(type,id){
 }
 async function saveEntry(){
  if(!canEdit())return alert("Your role is view-only.");
+ const navigationAtStart=navigationRevision;
  let aid=entryEquipment.value,type=entryType.value,cost=Number(entryCost.value||0),desc=entryDescription.value.trim()||type,date=entryDate.value||today(),notes=entryNotes.value.trim();
  if(!assets.some(a=>a.id===aid))return formMessage("entry","Choose equipment before saving a cost.",entryEquipment);
  if(!Number.isFinite(cost)||cost<0)return formMessage("entry","Enter a valid cost of 0 or more.",entryCost);
@@ -1021,7 +1050,7 @@ async function saveEntry(){
    await sb("/rest/v1/expenses",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({workspace_id:workspace.id,asset_id:aid,category:"other",amount:cost,expense_date:date,description:desc+(notes?" — "+notes:""),created_by:userId()})});
    recorded=true;
   }
-  closeModal("entryModal");await reloadCloud();openDetail(aid);
+  closeModal("entryModal");await reloadCloud();restoreAfterSave(navigationAtStart,()=>openDetail(aid));
  }catch(e){
    if(recorded){
      closeModal("entryModal");
@@ -1033,6 +1062,7 @@ function openService(id){if(!canEdit())return alert("Your role is view-only.");c
 function syncServiceFields(){let d=serviceKind.value==="date";serviceIntervalWrap.classList.toggle("hidden",d);serviceDateWrap.classList.toggle("hidden",!d)}
 async function saveService(){
  if(!canEdit())return alert("Your role is view-only.");
+ const navigationAtStart=navigationRevision;
  let title=serviceTitle.value.trim();
  if(!title)return formMessage("service","Enter a service name.",serviceTitle);
  let kind=serviceKind.value,body={workspace_id:workspace.id,asset_id:currentId,title,active:true};
@@ -1054,7 +1084,7 @@ async function saveService(){
  try{
    await sb("/rest/v1/maintenance_schedules",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});
    closeModal("serviceModal");
-   await reloadCloud();openDetail(currentId);
+   await reloadCloud();restoreAfterSave(navigationAtStart,()=>openDetail(currentId));
  }catch(e){if(serviceModal.classList.contains("open"))formMessage("service","Could not save schedule: "+e.message)}
 }
 function markOut(id){
@@ -1068,6 +1098,7 @@ function markOut(id){
 }
 async function saveDowntime(){
  if(!canEdit()||downtimeSaving)return;
+ const navigationAtStart=navigationRevision;
  const id=downtimeAssetId;
  if(!assets.some(x=>x.id===id))return formMessage("downtime","This equipment is no longer available. Close and refresh.");
  if(pendingDowntimeAssets.has(id)||downtime.some(x=>x.asset_id===id&&!x.ended_at))return formMessage("downtime","An active downtime record already exists. Close and refresh.");
@@ -1078,7 +1109,7 @@ async function saveDowntime(){
    recorded=true;pendingDowntimeAssets.add(id);
    await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"down",updated_at:new Date().toISOString()})});
    updated=true;downtimeSaving=false;closeModal("downtimeModal");downtimeAssetId=null;
-   await reloadCloud();pendingDowntimeAssets.delete(id);openDetail(id);
+   await reloadCloud();pendingDowntimeAssets.delete(id);restoreAfterSave(navigationAtStart,()=>openDetail(id));
  }catch(e){
    if(recorded){
      downtimeSaving=false;closeModal("downtimeModal");downtimeAssetId=null;
@@ -1098,6 +1129,7 @@ function returnToService(id){
 }
 async function saveReturnToService(){
  if(!canEdit()||returnSaving)return;
+ const navigationAtStart=navigationRevision;
  const id=returnAssetId,d=downtime.find(x=>x.asset_id===id&&!x.ended_at);
  if(!d||pendingReturnAssets.has(id))return formMessage("return","This downtime has already changed. Close and refresh.");
  formMessage("return","");let ended=false,updated=false;returnSaving=true;
@@ -1106,7 +1138,7 @@ async function saveReturnToService(){
    ended=true;pendingReturnAssets.add(id);
    await sb("/rest/v1/assets?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"good",updated_at:new Date().toISOString()})});
    updated=true;returnSaving=false;closeModal("returnModal");returnAssetId=null;
-   await reloadCloud();pendingReturnAssets.delete(id);openDetail(id);
+   await reloadCloud();pendingReturnAssets.delete(id);restoreAfterSave(navigationAtStart,()=>openDetail(id));
  }catch(e){
    if(ended){
      returnSaving=false;closeModal("returnModal");returnAssetId=null;
@@ -1127,6 +1159,7 @@ function completeService(scheduleId){
 }
 async function saveCompletedService(){
  if(!canEdit()||completionSaving)return;
+ const navigationAtStart=navigationRevision;
  const s=schedules.find(x=>x.id===completingScheduleId),a=assets.find(x=>x.id===s?.asset_id);
  if(!s||!a)return formMessage("completion","This schedule is no longer available. Close and refresh.");
  const date=completionDate.value,notes=completionNotes.value.trim(),cost=Number(completionCost.value);
@@ -1152,7 +1185,7 @@ async function saveCompletedService(){
    await sb("/rest/v1/maintenance_schedules?id=eq."+s.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
    updated=true;
    completionSaving=false;closeModal("completionModal");completingScheduleId=null;
-   await reloadCloud();openDetail(a.id);
+   await reloadCloud();restoreAfterSave(navigationAtStart,()=>openDetail(a.id));
  }catch(e){
    if(recorded){
      completionSaving=false;closeModal("completionModal");completingScheduleId=null;
@@ -1171,13 +1204,14 @@ function repairCard(r){
 const completingRepairs=new Set();
 async function completeRepair(id){
  if(!canEdit())return alert("Your role is view-only.");
+ const navigationAtStart=navigationRevision;
  const r=repairs.find(x=>x.id===id);if(!r)return;
  if(completingRepairs.has(id))return;
  const aid=r.asset_id;
  completingRepairs.add(id);let saved=false;
  try{
    await sb("/rest/v1/repairs?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"completed",completed_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
-   saved=true;await reloadCloud();completingRepairs.delete(id);openDetail(aid);
+   saved=true;await reloadCloud();completingRepairs.delete(id);restoreAfterSave(navigationAtStart,()=>openDetail(aid));
  }catch(e){
    if(!saved)completingRepairs.delete(id);
    setCloudStatus(saved?"Repair was completed, but cloud refresh failed. Refresh before trying again.":"Could not complete repair: "+e.message,true);
@@ -1203,7 +1237,7 @@ function openDetail(id){currentId=id;let a=assets.find(x=>x.id===id);if(!a)retur
  <br>${canManageTeam()?`<button class="btn danger wide" onclick="deleteEquipment('${id}')">Delete Equipment</button>`:""}`;
  show("detail");
 }
-function renderReports(){if(!workspace)return;let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,openRepairCount=repairs.filter(r=>r.status!=="completed").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Open repairs</span><b>${openRepairCount}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" role="button" tabindex="0" aria-label="View ${esc(x.a.name)}" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||(!assets.length?'<div class="empty emptyAction"><b>No costs to report yet</b><p>Add equipment first, then record its maintenance and repairs.</p>'+(canEdit()?'<button class="btn" onclick="openEquipment()">Add Equipment</button>':'')+'</div>':'<div class="empty emptyAction"><b>No costs recorded yet</b><p>Record maintenance, repairs, or another expense to see your highest-cost equipment.</p>'+(canEdit()?'<button class="btn" onclick="quickAdd()">Add a Cost</button>':'')+'</div>')}`}
+function renderReports(){if(!workspace)return;if(!isPro()){reportsContent.innerHTML='<div class="empty emptyAction"><b>Advanced reports are a Pro feature.</b><p>View Pro to unlock equipment cost rankings and detailed reports.</p><button class="btn" onclick="show(\'pro\')">View Pro</button></div>';return}let rows=assets.map(a=>{let c=assetCosts(a.id);return {a,total:c.m+c.r+c.e,c}}).sort((x,y)=>y.total-x.total);let total=rows.reduce((n,x)=>n+x.total,0),dueCount=schedules.filter(s=>scheduleState(s).state!=="ok").length,openRepairCount=repairs.filter(r=>r.status!=="completed").length,days=downtime.reduce((n,d)=>{let s=new Date(d.started_at),e=d.ended_at?new Date(d.ended_at):new Date();return n+Math.max(0,Math.ceil((e-s)/86400000))},0);reportsContent.innerHTML=`<div class="heroCard"><div class="kicker">TOTAL RECORDED OPERATING COSTS</div><div class="money">${money(total)}</div><div class="metricGrid"><div class="metric"><span class="muted">Assets</span><b>${assets.length}</b></div><div class="metric"><span class="muted">Open repairs</span><b>${openRepairCount}</b></div><div class="metric"><span class="muted">Maintenance due</span><b>${dueCount}</b></div><div class="metric"><span class="muted">Downtime</span><b>${days}d</b></div></div></div><h2>Highest-cost equipment</h2>${rows.filter(x=>x.total>0).map(x=>`<div class="card row" role="button" tabindex="0" aria-label="View ${esc(x.a.name)}" onclick="openDetail('${x.a.id}')"><div><b>${esc(x.a.name)}</b><div class="tiny">${esc(x.a.asset_type||"Equipment")}</div></div><b>${money(x.total)}</b></div>`).join("")||(!assets.length?'<div class="empty emptyAction"><b>No costs to report yet</b><p>Add equipment first, then record its maintenance and repairs.</p>'+(canEdit()?'<button class="btn" onclick="openEquipment()">Add Equipment</button>':'')+'</div>':'<div class="empty emptyAction"><b>No costs recorded yet</b><p>Record maintenance, repairs, or another expense to see your highest-cost equipment.</p>'+(canEdit()?'<button class="btn" onclick="quickAdd()">Add a Cost</button>':'')+'</div>')}`}
 
 
 function isPro(){return String(entitlement?.plan||"free").toLowerCase()==="pro" && entitlement?.active!==false}
