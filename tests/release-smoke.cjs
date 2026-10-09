@@ -23,3 +23,14 @@ for (const icon of manifest.icons) assert(fs.existsSync(icon.src.replace(/^\.\//
 for (const filename of ['app-core-v4.9.7.html', 'edit-history-v4.9.8.js']) assert(fs.existsSync(filename), 'missing runtime ' + filename);
 console.log('PASS asset references and PWA manifest');
 console.log('NOTE: These are static smoke tests, not browser, Supabase, RLS, or notification delivery tests.');
+
+const core = fs.readFileSync('app-core-v4.9.7.html','utf8');
+assert.match(core, /<select id="eqType" onchange="suggestEquipmentTracking\(\)"><option value="">Select Equipment Type<\/option>/);
+assert.match(core, /if\(!eqType\.value\)return formMessage\("equipment","Select an equipment type\."/);
+assert.match(core, /eqType\.value="";eqTracking\.value="none"/);
+for (const [kind, tracking] of Object.entries({Mower:'hours',Truck:'miles',Trailer:'none',Generator:'hours',Compressor:'hours',Tool:'none',Other:'none'})) {
+  assert(core.includes(kind+':"'+tracking+'"'), kind + ' tracking suggestion missing');
+}
+const equipmentForm = core.split('<div id="equipmentModal"')[1].split('<div id="entryModal"')[0];
+assert(!/placeholder="/.test(equipmentForm), 'new equipment form must not contain example placeholders');
+console.log('PASS new equipment form defaults and equipment tracking suggestions');
