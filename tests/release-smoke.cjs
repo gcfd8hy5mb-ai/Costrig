@@ -34,3 +34,10 @@ for (const [kind, tracking] of Object.entries({Mower:'hours',Truck:'miles',Trail
 const equipmentForm = core.split('<div id="equipmentModal"')[1].split('<div id="entryModal"')[0];
 assert(!/placeholder="/.test(equipmentForm), 'new equipment form must not contain example placeholders');
 console.log('PASS new equipment form defaults and equipment tracking suggestions');
+
+const scannerCore = fs.readFileSync('app-core-v4.9.7.html','utf8');
+const scannerStart = scannerCore.slice(scannerCore.indexOf('async function startVinScan()'),scannerCore.indexOf('async function onVinScanned('));
+assert(scannerStart.indexOf('decodeFromStream') < scannerStart.indexOf('if(!scanning&&detector)'), 'ZXing should be preferred before native fallback');
+assert(scannerStart.includes('if(!scanning&&detector)'), 'native barcode fallback missing');
+assert(scannerStart.includes('Camera access was denied'), 'camera permission guidance missing');
+console.log('PASS Android VIN ZXing priority, native fallback and camera errors');
