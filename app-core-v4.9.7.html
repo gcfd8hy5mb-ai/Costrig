@@ -736,6 +736,19 @@ function normalizeVin(v){
  return String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/[IOQ]/g,"");
 }
 function isValidVin(v){return normalizeVin(v).length===17}
+function extractScannedVin(value){
+ // Some Code 39 VIN labels include framing asterisks; PDF417/Code128
+ // payloads can include a VIN prefix or additional fields.
+ const source=String(value||"").toUpperCase();
+ const candidates=[source,...source.split(/[^A-Z0-9]+/)];
+ for(const part of candidates){
+   const clean=normalizeVin(part.replace(/^\*|\*$/g,""));
+   if(/^[A-HJ-NPR-Z0-9]{17}$/.test(clean))return clean;
+ }
+ const matches=source.match(/[A-HJ-NPR-Z0-9]{17}/g)||[];
+ return matches.find(isValidVin)||"";
+}
+
 async function findAssetByVin(vin){
  const clean=normalizeVin(vin);
  if(!clean||!workspace?.id)return null;
@@ -820,16 +833,15 @@ async function startVinScan(){
      }catch{}
    }
    if(run!==vinScanRun)return;
-   // On Android Chromium the native detector may report support yet fail to
-   // recognize vehicle labels. Try ZXing first when available, retaining native
-   // detection as an independent fallback.
+   // Run available decoders together: some Android cameras recognize VIN
+   // Code39/PDF417 labels in only one of the browser or ZXing engines.
    let scanning=false;
    if(window.ZXingBrowser?.BrowserMultiFormatReader){
      try{
        vinReader=new ZXingBrowser.BrowserMultiFormatReader();
        const controls=await vinReader.decodeFromStream(stream,vinVideo,(result,error,controls)=>{
-         const raw=result?.getText?.();
-         if(raw&&isValidVin(raw)&&run===vinScanRun&&!vinScanBusy){
+         const raw=extractScannedVin(result?.getText?.());
+         if(raw&&run===vinScanRun&&!vinScanBusy){
            vinScanBusy=true;
            controls.stop();
            stopVinScan();
@@ -847,13 +859,13 @@ async function startVinScan(){
        console.warn("VIN ZXing scanner unavailable; trying built-in detector",scannerError);
      }
    }
-   if(!scanning&&detector){
+   if(detector){
      vinScanTimer=setInterval(async()=>{
        if(vinScanBusy||run!==vinScanRun)return;
        vinScanBusy=true;
        try{
          const codes=await detector.detect(vinVideo);
-         const raw=codes.find(c=>isValidVin(c.rawValue))?.rawValue;
+         const raw=codes.map(c=>extractScannedVin(c.rawValue)).find(Boolean);
          if(raw&&run===vinScanRun){
            stopVinScan();
            await onVinScanned(raw);
