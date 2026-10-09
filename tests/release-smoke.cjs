@@ -41,3 +41,10 @@ assert(scannerStart.indexOf('decodeFromStream') < scannerStart.indexOf('if(!scan
 assert(scannerStart.includes('if(!scanning&&detector)'), 'native barcode fallback missing');
 assert(scannerStart.includes('Camera access was denied'), 'camera permission guidance missing');
 console.log('PASS Android VIN ZXing priority, native fallback and camera errors');
+
+const vinSource=fs.readFileSync('app-core-v4.9.7.html','utf8');
+assert(vinSource.includes('function extractScannedVin(value)'), 'VIN payload extraction available');
+assert(vinSource.includes('const raw=extractScannedVin(result?.getText?.());'), 'ZXing extracts VIN payload');
+assert(vinSource.includes('codes.map(c=>extractScannedVin(c.rawValue))'), 'native scanner extracts VIN payload');
+assert(vinSource.includes('if(detector){'), 'native detector runs alongside ZXing');
+console.log('PASS multi-decoder Android VIN recognition paths');
