@@ -820,7 +820,34 @@ async function startVinScan(){
      }catch{}
    }
    if(run!==vinScanRun)return;
-   if(detector){
+   // On Android Chromium the native detector may report support yet fail to
+   // recognize vehicle labels. Try ZXing first when available, retaining native
+   // detection as an independent fallback.
+   let scanning=false;
+   if(window.ZXingBrowser?.BrowserMultiFormatReader){
+     try{
+       vinReader=new ZXingBrowser.BrowserMultiFormatReader();
+       const controls=await vinReader.decodeFromStream(stream,vinVideo,(result,error,controls)=>{
+         const raw=result?.getText?.();
+         if(raw&&isValidVin(raw)&&run===vinScanRun&&!vinScanBusy){
+           vinScanBusy=true;
+           controls.stop();
+           stopVinScan();
+           void onVinScanned(raw);
+         }
+       });
+       if(run!==vinScanRun){controls.stop();return;}
+       vinControls=controls;
+       scanning=true;
+       vinScanStatus.textContent="Scanner ready. Hold the VIN barcode steady in the camera view.";
+     }catch(scannerError){
+       try{vinControls?.stop()}catch{}
+       vinControls=null;
+       vinReader=null;
+       console.warn("VIN ZXing scanner unavailable; trying built-in detector",scannerError);
+     }
+   }
+   if(!scanning&&detector){
      vinScanTimer=setInterval(async()=>{
        if(vinScanBusy||run!==vinScanRun)return;
        vinScanBusy=true;
@@ -831,25 +858,15 @@ async function startVinScan(){
            stopVinScan();
            await onVinScanned(raw);
          }
-       }catch{}
+       }catch(error){console.warn("VIN native barcode detection failed",error)}
        if(run===vinScanRun)vinScanBusy=false;
      },500);
-   }else if(window.ZXingBrowser?.BrowserMultiFormatReader){
-     vinReader=new ZXingBrowser.BrowserMultiFormatReader();
-     const controls=await vinReader.decodeFromStream(stream,vinVideo,(result,error,controls)=>{
-       const raw=result?.getText?.();
-       if(raw&&isValidVin(raw)&&run===vinScanRun&&!vinScanBusy){
-         vinScanBusy=true;
-         controls.stop();
-         stopVinScan();
-         onVinScanned(raw);
-       }
-     });
-     if(run!==vinScanRun)controls.stop();else vinControls=controls;
-   }else{
+     scanning=true;
+   }
+   if(!scanning){
      stopVinScan();
      vinScannerModal.classList.add("open");
-     vinScanStatus.textContent="Barcode scanner could not load. Enter the VIN manually, or reload and try again.";
+     vinScanStatus.textContent="Barcode scanner could not load. Check your connection or enter the VIN manually.";
    }
  }catch(e){
    if(run!==vinScanRun)return;
