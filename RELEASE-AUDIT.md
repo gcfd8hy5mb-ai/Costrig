@@ -72,7 +72,7 @@ Use real authenticated accounts and publishable/anon API access only for isolati
 
 ## Release decisions and residual advisories
 
-- Free/Pro remains explicitly self-service **beta** access. The client and `entitlements_self_update` allow users to change their own plan. Client-side report/team gates are not secure paid entitlement enforcement. A paid release needs a concrete entitlement source and removal/restriction of beta access; that would change an existing feature and needs the user's decision.
+- **Beta release decision (confirmed by owner 2026-10-09):** Keep Free/Pro as self-service beta access without subscriptions or billing enforcement in this release. The client and `entitlements_self_update` intentionally allow testers to switch plans. This is not secure paid entitlement enforcement; a paid launch will require a separate entitlement/billing gate.
 - Supabase leaked-password protection is disabled. It remains a security advisor warning; no auth configuration or paid plan was changed.
 - Six authenticated SECURITY DEFINER workspace RPC advisories remain because the app intentionally calls these authorization-checked functions. Their authenticated integration tests remain pending.
 - `date_push_deliveries` intentionally has RLS and no client policies, keeping delivery bookkeeping server-only. Do not add client policies merely to remove an informational advisor notice.
