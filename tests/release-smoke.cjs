@@ -48,3 +48,8 @@ assert(vinSource.includes('const raw=extractScannedVin(result?.getText?.());'), 
 assert(vinSource.includes('codes.map(c=>extractScannedVin(c.rawValue))'), 'native scanner extracts VIN payload');
 assert(vinSource.includes('if(detector){'), 'native detector runs alongside ZXing');
 console.log('PASS multi-decoder Android VIN recognition paths');
+
+const authSource=fs.readFileSync("app-core-v4.9.7.html","utf8");
+assert(authSource.includes('"/Costrig/"'),"Confirmation should return to GitHub Pages app base");
+assert(authSource.includes('/auth/v1/signup?redirect_to='),"Signup must specify confirmation redirect");
+console.log("PASS signup email confirmation targets COSTRIG base path");
