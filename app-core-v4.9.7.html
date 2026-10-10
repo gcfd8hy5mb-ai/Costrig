@@ -478,7 +478,8 @@ async function submitAuth(){
  authSubmit.textContent=authMode==="signup"?"Creating account…":"Signing in…";
  try{
    if(authMode==="signup"){
-     let r=await fetch(SB_URL+"/auth/v1/signup",{method:"POST",headers:authHeaders(),body:JSON.stringify({email,password})});
+     const confirmReturnUrl=new URL("./",window.location.href).origin+"/Costrig/";
+     let r=await fetch(SB_URL+"/auth/v1/signup?redirect_to="+encodeURIComponent(confirmReturnUrl),{method:"POST",headers:authHeaders(),body:JSON.stringify({email,password})});
      let d=await r.json();
      if(!r.ok)throw new Error(d.msg||d.error_description||d.message||"Sign up failed");
      if(!d.access_token){
