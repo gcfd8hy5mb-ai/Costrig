@@ -185,20 +185,20 @@ body:has(.modal.open){overflow:hidden}
 
 <div id="equipmentModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="equipmentModalTitle"><div class="modalBox">
 <button class="close" aria-label="Close dialog" onclick="closeModal('equipmentModal')">✕</button><h2 id="equipmentModalTitle">Add Equipment</h2>
-<label for="eqName">Name</label><input id="eqName" placeholder="Exmark Lazer Z">
-<label for="eqType">Type</label><select id="eqType"><option>Mower</option><option>Truck</option><option>Trailer</option><option>Generator</option><option>Compressor</option><option>Tool</option><option>Other</option></select>
-<div class="metricGrid"><div><label for="eqYear">Year</label><input id="eqYear" type="number" inputmode="numeric" placeholder="2024"></div><div><label for="eqMake">Make</label><input id="eqMake" placeholder="Ford"></div></div>
-<label for="eqModel">Model</label><input id="eqModel" placeholder="F-250">
-<div class="metricGrid"><div><label for="eqVehicleType">Vehicle type</label><input id="eqVehicleType" placeholder="Truck"></div><div><label for="eqBodyClass">Body class</label><input id="eqBodyClass" placeholder="Pickup"></div></div>
-<label for="eqEngineDescription">Engine</label><input id="eqEngineDescription" placeholder="Decoded when available">
-<div class="metricGrid"><div><label for="eqSerial">Serial #</label><input id="eqSerial" placeholder="Optional"></div><div><label for="eqVin">VIN</label><input id="eqVin" maxlength="17" autocapitalize="characters" placeholder="17-character VIN"></div></div>
+<label for="eqName">Name</label><input id="eqName">
+<label for="eqType">Type</label><select id="eqType" onchange="suggestEquipmentTracking()"><option value="">Select Equipment Type</option><option>Mower</option><option>Truck</option><option>Trailer</option><option>Generator</option><option>Compressor</option><option>Tool</option><option>Other</option></select>
+<div class="metricGrid"><div><label for="eqYear">Year</label><input id="eqYear" type="number" inputmode="numeric"></div><div><label for="eqMake">Make</label><input id="eqMake"></div></div>
+<label for="eqModel">Model</label><input id="eqModel">
+<div class="metricGrid"><div><label for="eqVehicleType">Vehicle type</label><input id="eqVehicleType"></div><div><label for="eqBodyClass">Body class</label><input id="eqBodyClass"></div></div>
+<label for="eqEngineDescription">Engine</label><input id="eqEngineDescription">
+<div class="metricGrid"><div><label for="eqSerial">Serial #</label><input id="eqSerial"></div><div><label for="eqVin">VIN</label><input id="eqVin" maxlength="17" autocapitalize="characters"></div></div>
 <div class="metricGrid" style="margin-top:10px"><button id="scanVinBtn" type="button" class="btn secondary" onclick="startVinScan()">Scan VIN</button><button type="button" class="btn secondary" onclick="lookupVin()">Look Up VIN</button></div>
 <div id="vinLookupStatus" class="tiny" style="margin-top:8px"></div>
 <label for="eqTracking">Tracking</label><select id="eqTracking" onchange="syncMeterFields()"><option value="hours">Engine hours</option><option value="miles">Mileage</option><option value="none">No meter</option></select>
 <div id="eqMeterWrap"><label id="eqMeterLabel" for="eqMeter">Current mileage</label><input id="eqMeter" type="number" inputmode="decimal" min="0" step="any" value="0"></div>
-<div class="metricGrid"><div><label for="eqPrice">Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></div><div><label for="eqPurchaseDate">Purchase date</label><input id="eqPurchaseDate" type="date"></div></div>
+<div class="metricGrid"><div><label for="eqPrice">Purchase price</label><input id="eqPrice" type="number" inputmode="decimal" min="0" step="any"></div><div><label for="eqPurchaseDate">Purchase date</label><input id="eqPurchaseDate" type="date"></div></div>
 <label for="eqStatus">Status</label><select id="eqStatus"><option value="good">Good</option><option value="attention">Needs Attention</option><option value="down">Out of Service</option></select>
-<label for="eqNotes">Notes</label><textarea id="eqNotes" placeholder="Ownership, warranty, location, attachments, or anything useful"></textarea>
+<label for="eqNotes">Notes</label><textarea id="eqNotes"></textarea>
 <div id="equipmentFormMessage" class="formMessage tiny" role="alert"></div>
 <br><br><button class="btn wide" onclick="saveOnce(this,saveEquipment)">Save Equipment</button>
 </div></div>
@@ -424,6 +424,13 @@ function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currenc
 function localDate(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
 function today(){return localDate(new Date())}
 function calendarDay(dateText){let [year,month,day]=dateText.split("-").map(Number);return Date.UTC(year,month-1,day)/86400000}
+function suggestEquipmentTracking(){
+ if(editingId)return;
+ const suggestions={Mower:"hours",Truck:"miles",Trailer:"none",Generator:"hours",Compressor:"hours",Tool:"none",Other:"none"};
+ eqTracking.value=suggestions[eqType.value]||"none";
+ eqMeter.value="";
+ syncMeterFields();
+}
 function syncMeterFields(){
  const kind=eqTracking.value;
  document.getElementById("eqMeterWrap").classList.toggle("hidden",kind==="none");
@@ -484,7 +491,8 @@ async function submitAuth(){
  authSubmit.textContent=authMode==="signup"?"Creating account…":"Signing in…";
  try{
    if(authMode==="signup"){
-     let r=await fetch(SB_URL+"/auth/v1/signup",{method:"POST",headers:authHeaders(),body:JSON.stringify({email,password})});
+     const confirmReturnUrl=new URL("./",window.location.href).origin+"/Costrig/";
+     let r=await fetch(SB_URL+"/auth/v1/signup?redirect_to="+encodeURIComponent(confirmReturnUrl),{method:"POST",headers:authHeaders(),body:JSON.stringify({email,password})});
      let d=await r.json();
      if(!r.ok)throw new Error(d.msg||d.error_description||d.message||"Sign up failed");
      if(!d.access_token){
@@ -755,6 +763,19 @@ function normalizeVin(v){
  return String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/[IOQ]/g,"");
 }
 function isValidVin(v){return normalizeVin(v).length===17}
+function extractScannedVin(value){
+ // Some Code 39 VIN labels include framing asterisks; PDF417/Code128
+ // payloads can include a VIN prefix or additional fields.
+ const source=String(value||"").toUpperCase();
+ const candidates=[source,...source.split(/[^A-Z0-9]+/)];
+ for(const part of candidates){
+   const clean=normalizeVin(part.replace(/^\*|\*$/g,""));
+   if(/^[A-HJ-NPR-Z0-9]{17}$/.test(clean))return clean;
+ }
+ const matches=source.match(/[A-HJ-NPR-Z0-9]{17}/g)||[];
+ return matches.find(isValidVin)||"";
+}
+
 async function findAssetByVin(vin){
  const clean=normalizeVin(vin);
  if(!clean||!workspace?.id)return null;
@@ -839,36 +860,52 @@ async function startVinScan(){
      }catch{}
    }
    if(run!==vinScanRun)return;
+   // Run available decoders together: some Android cameras recognize VIN
+   // Code39/PDF417 labels in only one of the browser or ZXing engines.
+   let scanning=false;
+   if(window.ZXingBrowser?.BrowserMultiFormatReader){
+     try{
+       vinReader=new ZXingBrowser.BrowserMultiFormatReader();
+       const controls=await vinReader.decodeFromStream(stream,vinVideo,(result,error,controls)=>{
+         const raw=extractScannedVin(result?.getText?.());
+         if(raw&&run===vinScanRun&&!vinScanBusy){
+           vinScanBusy=true;
+           controls.stop();
+           stopVinScan();
+           void onVinScanned(raw);
+         }
+       });
+       if(run!==vinScanRun){controls.stop();return;}
+       vinControls=controls;
+       scanning=true;
+       vinScanStatus.textContent="Scanner ready. Hold the VIN barcode steady in the camera view.";
+     }catch(scannerError){
+       try{vinControls?.stop()}catch{}
+       vinControls=null;
+       vinReader=null;
+       console.warn("VIN ZXing scanner unavailable; trying built-in detector",scannerError);
+     }
+   }
    if(detector){
      vinScanTimer=setInterval(async()=>{
        if(vinScanBusy||run!==vinScanRun)return;
        vinScanBusy=true;
        try{
          const codes=await detector.detect(vinVideo);
-         const raw=codes.find(c=>isValidVin(c.rawValue))?.rawValue;
+         const raw=codes.map(c=>extractScannedVin(c.rawValue)).find(Boolean);
          if(raw&&run===vinScanRun){
            stopVinScan();
            await onVinScanned(raw);
          }
-       }catch{}
+       }catch(error){console.warn("VIN native barcode detection failed",error)}
        if(run===vinScanRun)vinScanBusy=false;
      },500);
-   }else if(window.ZXingBrowser?.BrowserMultiFormatReader){
-     vinReader=new ZXingBrowser.BrowserMultiFormatReader();
-     const controls=await vinReader.decodeFromStream(stream,vinVideo,(result,error,controls)=>{
-       const raw=result?.getText?.();
-       if(raw&&isValidVin(raw)&&run===vinScanRun&&!vinScanBusy){
-         vinScanBusy=true;
-         controls.stop();
-         stopVinScan();
-         onVinScanned(raw);
-       }
-     });
-     if(run!==vinScanRun)controls.stop();else vinControls=controls;
-   }else{
+     scanning=true;
+   }
+   if(!scanning){
      stopVinScan();
      vinScannerModal.classList.add("open");
-     vinScanStatus.textContent="Barcode scanner could not load. Enter the VIN manually, or reload and try again.";
+     vinScanStatus.textContent="Barcode scanner could not load. Check your connection or enter the VIN manually.";
    }
  }catch(e){
    if(run!==vinScanRun)return;
@@ -916,12 +953,13 @@ function stopVinScan(){
  vinScanBusy=false;
 }
 
-function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value=0;eqStatus.value="good";eqType.value="Truck";eqTracking.value="miles";syncMeterFields();eqVehicleType.value="";eqBodyClass.value="";eqEngineDescription.value="";vinLookupStatus.textContent="";vinLookupStatus.className="tiny";formMessage("equipment","");equipmentModal.classList.add("open")}
+function openEquipment(){if(!canEdit())return alert("Your role is view-only.");editingId=null;equipmentModalTitle.textContent="Add Equipment";["eqName","eqMake","eqModel","eqSerial","eqVin","eqPrice","eqPurchaseDate","eqNotes","eqYear"].forEach(id=>document.getElementById(id).value="");eqMeter.value="";eqStatus.value="good";eqType.value="";eqTracking.value="none";syncMeterFields();eqVehicleType.value="";eqBodyClass.value="";eqEngineDescription.value="";vinLookupStatus.textContent="";vinLookupStatus.className="tiny";formMessage("equipment","");equipmentModal.classList.add("open")}
 function closeModal(id){if((id==="completionModal"&&completionSaving)||(id==="downtimeModal"&&downtimeSaving)||(id==="returnModal"&&returnSaving)||(id==="deleteModal"&&deleteSaving))return;document.getElementById(id).classList.remove("open")}
 async function saveEquipment(){
  if(!canEdit())return alert("Your role is view-only.");
  const navigationAtStart=navigationRevision;
  let name=eqName.value.trim();if(!name)return formMessage("equipment","Enter an equipment name.",eqName);
+ if(!eqType.value)return formMessage("equipment","Select an equipment type.",eqType);
  if(eqTracking.value!=="none"&&(eqMeter.value===""||!Number.isFinite(Number(eqMeter.value))||Number(eqMeter.value)<0))
    return formMessage("equipment","Enter a valid current meter reading.",eqMeter);
  if(eqPrice.value!==""&&(!Number.isFinite(Number(eqPrice.value))||Number(eqPrice.value)<0))
